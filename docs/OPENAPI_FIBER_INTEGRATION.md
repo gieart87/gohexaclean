@@ -6,13 +6,16 @@ Setelah menjalankan `make openapi`, file berikut akan di-generate:
 
 ```
 internal/adapter/inbound/http/generated/
-└── server.gen.go    # Types, ServerInterface (Fiber), RegisterHandlers
+└── server.gen.go    # All-in-one: Types, ServerInterface (Fiber), Spec, RegisterHandlers
 ```
 
-File ini berisi:
+**Satu file berisi semuanya:**
 1. **Request/Response Types** - Models dari OpenAPI spec
 2. **ServerInterface** - Interface dengan method signature menggunakan `*fiber.Ctx`
 3. **RegisterHandlers** - Fungsi untuk auto-register routes ke Fiber
+4. **GetSwagger()** - OpenAPI spec embedded in Go code
+
+> **Note:** Jika sebelumnya ada `types.gen.go` atau `spec.gen.go` terpisah, hapus file-file tersebut. Sekarang semuanya ada di satu file `server.gen.go`.
 
 ## 🎯 Two Integration Options
 
