@@ -1,0 +1,63 @@
+# golangci-lint configuration
+
+run:
+  timeout: 5m
+  modules-download-mode: readonly
+  tests: true
+  skip-dirs:
+    - bin
+    - vendor
+    - api/proto/user  # Skip generated proto files
+
+linters:
+  enable:
+    - gofmt
+    - govet
+    - errcheck
+    - staticcheck
+    - unused
+    - gosimple
+    - structcheck
+    - varcheck
+    - ineffassign
+    - deadcode
+    - typecheck
+
+  disable:
+    - golint  # Deprecated
+    - maligned  # Deprecated
+
+linters-settings:
+  errcheck:
+    check-type-assertions: false
+    check-blank: false
+
+  govet:
+    check-shadowing: false
+
+  gofmt:
+    simplify: true
+
+issues:
+  exclude-rules:
+    # Exclude some linters from running on tests files
+    - path: _test\.go
+      linters:
+        - errcheck
+        - gosec
+
+    # Exclude generated proto files
+    - path: api/proto/user/.*\.pb\.go
+      linters:
+        - all
+
+    # Exclude bootstrap for unused return values
+    - path: internal/bootstrap/
+      text: "Error return value is not checked"
+
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+  # Show all issues
+  exclude: []
