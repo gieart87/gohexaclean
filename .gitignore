@@ -50,6 +50,9 @@ temp/
 *.pb.go
 *_grpc.pb.go
 
+# Generated OpenAPI files
+**/generated/*.gen.go
+
 # Database
 *.db
 *.sqlite

@@ -122,6 +122,27 @@ proto-install:
 	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
+##@ OpenAPI
+
+## openapi: Generate code from OpenAPI spec
+openapi:
+	@echo "$(COLOR_GREEN)Generating code from OpenAPI spec...$(COLOR_RESET)"
+	./scripts/generate-openapi.sh
+
+## openapi-install: Install OpenAPI code generator
+openapi-install:
+	@echo "$(COLOR_GREEN)Installing oapi-codegen...$(COLOR_RESET)"
+	go install github.com/deepmap/oapi-codegen/v2/cmd/oapi-codegen@latest
+
+## openapi-validate: Validate OpenAPI spec
+openapi-validate:
+	@echo "$(COLOR_GREEN)Validating OpenAPI spec...$(COLOR_RESET)"
+	@if command -v redocly >/dev/null 2>&1; then \
+		redocly lint api/openapi/*.yaml; \
+	else \
+		echo "$(COLOR_YELLOW)redocly not installed. Run: npm install -g @redocly/cli$(COLOR_RESET)"; \
+	fi
+
 ##@ Database
 
 ## migrate-up: Run database migrations
