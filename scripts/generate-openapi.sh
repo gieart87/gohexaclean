@@ -14,25 +14,29 @@ fi
 OUTPUT_DIR="internal/adapter/inbound/http/generated"
 mkdir -p "$OUTPUT_DIR"
 
-# Generate types (models) - Framework agnostic
-echo "Generating types..."
-oapi-codegen -package generated -generate types \
-  api/openapi/user-api.yaml > "$OUTPUT_DIR/types.gen.go"
-
-# Generate spec (OpenAPI spec as Go code)
-echo "Generating spec..."
-oapi-codegen -package generated -generate spec \
-  api/openapi/user-api.yaml > "$OUTPUT_DIR/spec.gen.go"
+# Generate types, server interface, and spec for Fiber
+echo "Generating types, server interface, and spec for Fiber..."
+oapi-codegen -package generated -generate types,fiber,spec \
+  api/openapi/user-api.yaml > "$OUTPUT_DIR/server.gen.go"
 
 echo "✅ OpenAPI code generation complete!"
 echo ""
 echo "Generated files:"
-echo "  - $OUTPUT_DIR/types.gen.go     (Request/Response types - Framework agnostic)"
-echo "  - $OUTPUT_DIR/spec.gen.go      (OpenAPI spec embedded in Go)"
+echo "  - $OUTPUT_DIR/server.gen.go    (Types, Fiber ServerInterface, and spec)"
 echo ""
 echo "📝 Note:"
-echo "   We only generate types and spec (framework-agnostic)."
-echo "   Your Fiber handlers in internal/adapter/inbound/http/handler/"
-echo "   are the actual implementation."
+echo "   Generated ServerInterface is designed for Fiber (uses *fiber.Ctx):"
 echo ""
-echo "   Generated types can be used in your Fiber handlers for validation."
+echo "   type ServerInterface interface {"
+echo "       HealthCheck(c *fiber.Ctx) error"
+echo "       Login(c *fiber.Ctx) error"
+echo "       ListUsers(c *fiber.Ctx, params ListUsersParams) error"
+echo "       CreateUser(c *fiber.Ctx) error"
+echo "       GetUserById(c *fiber.Ctx, id string) error"
+echo "       UpdateUser(c *fiber.Ctx, id string) error"
+echo "       DeleteUser(c *fiber.Ctx, id string) error"
+echo "   }"
+echo ""
+echo "   You can implement this interface in your handlers or use generated"
+echo "   types directly. All requests are automatically validated against"
+echo "   the OpenAPI spec!"
