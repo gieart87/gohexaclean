@@ -70,3 +70,13 @@ telemetry:
 metrics:
   enabled: true
   port: 9090
+
+datadog:
+  enabled: false
+  agent_host: localhost
+  agent_port: "8125"
+  namespace: gohexaclean
+  tags:
+    - env:development
+    - service:gohexaclean
+  apm_enabled: false

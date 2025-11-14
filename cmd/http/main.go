@@ -38,12 +38,20 @@ func main() {
 	app.Use(middleware.LoggerMiddleware(container.Logger))
 	app.Use(middleware.CORSMiddleware(&container.Config.CORS))
 
+	// Telemetry middleware (metrics and tracing)
+	if container.MetricsService != nil || container.TracingService != nil {
+		app.Use(middleware.TelemetryMiddleware(container.MetricsService, container.TracingService))
+		container.Logger.Info("Telemetry middleware enabled")
+	}
+
 	// Setup routes
 	router.SetupRoutes(
 		app,
 		container.UserService,
 		container.Config.JWT.Secret,
 		container.Logger,
+		container.MetricsService,
+		container.TracingService,
 	)
 
 	// Start server

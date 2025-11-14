@@ -10,6 +10,7 @@ import (
 	"github.com/gieart87/gohexaclean/internal/adapter/inbound/http/handler/user"
 	"github.com/gieart87/gohexaclean/internal/infra/logger"
 	"github.com/gieart87/gohexaclean/internal/port/inbound"
+	"github.com/gieart87/gohexaclean/internal/port/outbound/telemetry"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -19,6 +20,8 @@ func SetupRoutes(
 	userService inbound.UserServicePort,
 	jwtSecret string,
 	log *logger.Logger,
+	metricsService telemetry.MetricsService,
+	tracingService telemetry.TracingService,
 ) {
 	// API v1 group
 	api := app.Group("/api/v1")

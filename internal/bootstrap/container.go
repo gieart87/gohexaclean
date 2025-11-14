@@ -1,10 +1,13 @@
 package bootstrap
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 
 	"github.com/gieart87/gohexaclean/internal/adapter/inbound/grpc/handler"
+	"github.com/gieart87/gohexaclean/internal/adapter/outbound/datadog"
+	"github.com/gieart87/gohexaclean/internal/adapter/outbound/otel"
 	"github.com/gieart87/gohexaclean/internal/adapter/outbound/pgsql"
 	"github.com/gieart87/gohexaclean/internal/adapter/outbound/redis"
 	"github.com/gieart87/gohexaclean/internal/app"
@@ -15,6 +18,7 @@ import (
 	"github.com/gieart87/gohexaclean/internal/port/inbound"
 	"github.com/gieart87/gohexaclean/internal/port/outbound/repository"
 	"github.com/gieart87/gohexaclean/internal/port/outbound/service"
+	"github.com/gieart87/gohexaclean/internal/port/outbound/telemetry"
 	redisClient "github.com/redis/go-redis/v9"
 )
 
@@ -32,6 +36,10 @@ type Container struct {
 
 	// Services
 	CacheService service.CacheService
+
+	// Telemetry
+	MetricsService telemetry.MetricsService
+	TracingService telemetry.TracingService
 
 	// Use Cases / Application Services
 	UserService inbound.UserServicePort
@@ -79,6 +87,65 @@ func NewContainer(configPath string) (*Container, error) {
 	// Initialize repositories
 	container.UserRepository = pgsql.NewUserRepositoryPG(database)
 
+	// Initialize telemetry services
+	ctx := context.Background()
+
+	// Priority: Datadog > OpenTelemetry
+	if cfg.Datadog.Enabled {
+		// Initialize Datadog metrics
+		metricsService, err := datadog.NewMetricsServiceDatadog(
+			cfg.Datadog.AgentHost+":"+cfg.Datadog.AgentPort,
+			cfg.Datadog.Namespace,
+			cfg.Datadog.Tags,
+		)
+		if err != nil {
+			log.Warn("Failed to initialize Datadog metrics, continuing without metrics")
+		} else {
+			container.MetricsService = metricsService
+			log.Info("Datadog metrics initialized")
+		}
+
+		// Initialize Datadog APM tracing
+		if cfg.Datadog.APMEnabled {
+			container.TracingService = datadog.NewTracingServiceDatadog(
+				cfg.App.Name,
+				cfg.Datadog.AgentHost,
+				cfg.Datadog.AgentPort,
+				cfg.App.Env,
+			)
+			log.Info("Datadog APM tracing initialized")
+		}
+	} else if cfg.Telemetry.Enabled {
+		// Initialize OpenTelemetry as fallback
+		log.Info("Initializing OpenTelemetry telemetry")
+
+		// Initialize OTEL metrics
+		metricsService, err := otel.NewMetricsServiceOTEL(
+			ctx,
+			cfg.Telemetry.ServiceName,
+			cfg.Telemetry.CollectorEndpoint,
+		)
+		if err != nil {
+			log.Warn("Failed to initialize OpenTelemetry metrics, continuing without metrics")
+		} else {
+			container.MetricsService = metricsService
+			log.Info("OpenTelemetry metrics initialized")
+		}
+
+		// Initialize OTEL tracing
+		tracingService, err := otel.NewTracingServiceOTEL(
+			ctx,
+			cfg.Telemetry.ServiceName,
+			cfg.Telemetry.CollectorEndpoint,
+		)
+		if err != nil {
+			log.Warn("Failed to initialize OpenTelemetry tracing, continuing without tracing")
+		} else {
+			container.TracingService = tracingService
+			log.Info("OpenTelemetry tracing initialized")
+		}
+	}
+
 	// Initialize services
 	if container.RedisClient != nil {
 		container.CacheService = redis.NewCacheServiceRedis(container.RedisClient)
@@ -117,6 +184,19 @@ func (c *Container) Close() error {
 	if c.RedisClient != nil {
 		if err := cache.Close(c.RedisClient); err != nil {
 			c.Logger.Error("Failed to close Redis connection")
+		}
+	}
+
+	// Close telemetry services
+	if c.MetricsService != nil {
+		if err := c.MetricsService.Close(); err != nil {
+			c.Logger.Error("Failed to close metrics service")
+		}
+	}
+
+	if c.TracingService != nil {
+		if err := c.TracingService.Close(); err != nil {
+			c.Logger.Error("Failed to close tracing service")
 		}
 	}
 

@@ -21,6 +21,7 @@ type Config struct {
 	RateLimit RateLimitConfig `yaml:"rate_limit"`
 	Telemetry TelemetryConfig `yaml:"telemetry"`
 	Metrics   MetricsConfig   `yaml:"metrics"`
+	Datadog   DatadogConfig   `yaml:"datadog"`
 }
 
 type AppConfig struct {
@@ -102,6 +103,15 @@ type MetricsConfig struct {
 	Port    int  `yaml:"port"`
 }
 
+type DatadogConfig struct {
+	Enabled    bool     `yaml:"enabled"`
+	AgentHost  string   `yaml:"agent_host"`
+	AgentPort  string   `yaml:"agent_port"`
+	Namespace  string   `yaml:"namespace"`
+	Tags       []string `yaml:"tags"`
+	APMEnabled bool     `yaml:"apm_enabled"`
+}
+
 // Load loads configuration from YAML file and environment variables
 func Load(configPath string) (*Config, error) {
 	// Load .env file if exists
@@ -175,6 +185,20 @@ func overrideFromEnv(cfg *Config) {
 
 	if v := os.Getenv("LOG_LEVEL"); v != "" {
 		cfg.Logger.Level = v
+	}
+
+	// Datadog configuration
+	if v := os.Getenv("DD_AGENT_HOST"); v != "" {
+		cfg.Datadog.AgentHost = v
+	}
+	if v := os.Getenv("DD_AGENT_PORT"); v != "" {
+		cfg.Datadog.AgentPort = v
+	}
+	if v := os.Getenv("DD_ENABLED"); v == "true" {
+		cfg.Datadog.Enabled = true
+	}
+	if v := os.Getenv("DD_APM_ENABLED"); v == "true" {
+		cfg.Datadog.APMEnabled = true
 	}
 }
 
