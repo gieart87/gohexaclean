@@ -91,6 +91,9 @@ This boilerplate implements a **hybrid architecture** combining the best of both
 ```
 gohexaclean/
 ├── api/
+│   ├── openapi/                    # OpenAPI 3.0 specifications
+│   │   ├── health-api.yaml        # Health check API spec
+│   │   └── user-api.yaml          # User management API spec
 │   └── proto/                      # Protocol Buffer definitions
 │       └── user.proto
 ├── cmd/
@@ -100,6 +103,13 @@ gohexaclean/
 │       └── main.go
 ├── config/                         # Configuration files
 │   └── app.yaml
+├── docs/                           # Documentation
+│   ├── API_FIRST_WORKFLOW.md
+│   ├── SWAGGER_GUIDE.md
+│   └── OPENAPI_FIBER_INTEGRATION.md
+├── scripts/                        # Build and utility scripts
+│   ├── generate-openapi.sh        # Auto-generate from OpenAPI specs
+│   └── generate-proto.sh          # Generate from protobuf
 ├── internal/
 │   ├── domain/                     # Domain entities & business logic
 │   │   ├── user.go
@@ -118,9 +128,25 @@ gohexaclean/
 │   ├── adapter/                    # Adapters implementation
 │   │   ├── inbound/
 │   │   │   ├── http/              # HTTP adapter (Fiber)
+│   │   │   │   ├── generated/     # Auto-generated from OpenAPI
+│   │   │   │   │   ├── healthapi/ # Health API generated code
+│   │   │   │   │   └── userapi/   # User API generated code
 │   │   │   │   ├── middleware/
-│   │   │   │   ├── handler/
+│   │   │   │   ├── handler/       # Per-endpoint handler files
+│   │   │   │   │   ├── health/
+│   │   │   │   │   │   ├── handler.go
+│   │   │   │   │   │   └── health_check_handler.go
+│   │   │   │   │   ├── user/
+│   │   │   │   │   │   ├── handler.go
+│   │   │   │   │   │   ├── login_handler.go
+│   │   │   │   │   │   ├── register_handler.go
+│   │   │   │   │   │   ├── admin_list_users_handler.go
+│   │   │   │   │   │   ├── admin_get_user_handler.go
+│   │   │   │   │   │   ├── admin_update_user_handler.go
+│   │   │   │   │   │   └── admin_delete_user_handler.go
+│   │   │   │   │   └── swagger_handler.go
 │   │   │   │   └── router/
+│   │   │   │       └── router.go
 │   │   │   └── grpc/              # gRPC adapter
 │   │   │       ├── handler/
 │   │   │       └── interceptor/
@@ -259,18 +285,63 @@ Features:
 - **Request/Response examples**: See all schemas
 - **OpenAPI 3.0 compliant**: Industry standard
 
-### 📝 OpenAPI Specification
+### 📝 OpenAPI Specifications
 
-View the raw OpenAPI spec at:
+View the raw OpenAPI specs at:
 
 ```
 http://localhost:8080/api/v1/swagger/spec
 ```
 
-Or find it in the repository:
+Or find them in the repository:
+- `api/openapi/health-api.yaml` - Health Check API
 - `api/openapi/user-api.yaml` - User Management API
 
-### 🔧 API-First Development
+### 🔧 API-First Development Workflow
+
+This boilerplate uses **OpenAPI-first** approach with auto-generated code:
+
+```bash
+# 1. Create/Edit OpenAPI spec
+vim api/openapi/product-api.yaml
+
+# 2. Generate Fiber handlers and types
+make openapi
+
+# 3. Implement handlers
+# Generated: internal/adapter/inbound/http/generated/productapi/
+# Implement: internal/adapter/inbound/http/handler/product/
+
+# 4. Register routes
+# Auto-register: productapi.RegisterHandlers(api, productHandler)
+```
+
+**Benefits:**
+- ✅ Type-safe request/response handling
+- ✅ Auto-validation from OpenAPI schema
+- ✅ Auto-generated Swagger documentation
+- ✅ Contract-first development
+- ✅ One file per endpoint for better organization
+
+**Generated Structure:**
+```
+handler/
+├── health/
+│   ├── handler.go              # Implements healthapi.ServerInterface
+│   └── health_check_handler.go # GET /health
+└── user/
+    ├── handler.go                    # Implements userapi.ServerInterface
+    ├── login_handler.go              # POST /auth/login (public)
+    ├── register_handler.go           # POST /users (public)
+    ├── admin_list_users_handler.go   # GET /users (protected)
+    ├── admin_get_user_handler.go     # GET /users/{id} (protected)
+    ├── admin_update_user_handler.go  # PUT /users/{id} (protected)
+    └── admin_delete_user_handler.go  # DELETE /users/{id} (protected)
+```
+
+See [docs/API_FIRST_WORKFLOW.md](docs/API_FIRST_WORKFLOW.md) and [docs/OPENAPI_FIBER_INTEGRATION.md](docs/OPENAPI_FIBER_INTEGRATION.md) for detailed guides.
+
+### Adding New API Endpoints
 
 This project follows **API-First** approach. See [docs/API_FIRST_WORKFLOW.md](docs/API_FIRST_WORKFLOW.md) for:
 - How to design APIs in OpenAPI

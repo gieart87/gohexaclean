@@ -1,6 +1,8 @@
 #!/bin/bash
 
 # Generate Go code from OpenAPI specifications
+# This script automatically detects all OpenAPI YAML files in api/openapi/
+# and generates corresponding Go code for each
 
 echo "Generating Go code from OpenAPI specs..."
 
@@ -10,41 +12,61 @@ if ! command -v oapi-codegen &> /dev/null; then
     go install github.com/deepmap/oapi-codegen/v2/cmd/oapi-codegen@latest
 fi
 
-# Output directories
-HEALTH_OUTPUT_DIR="internal/adapter/inbound/http/generated/healthapi"
-USER_OUTPUT_DIR="internal/adapter/inbound/http/generated/userapi"
-mkdir -p "$HEALTH_OUTPUT_DIR"
-mkdir -p "$USER_OUTPUT_DIR"
+# Base output directory
+BASE_OUTPUT_DIR="internal/adapter/inbound/http/generated"
 
-# Generate Health API (health handler)
-echo "Generating Health API..."
-oapi-codegen -package healthapi -generate types,fiber,spec \
-  api/openapi/health-api.yaml > "$HEALTH_OUTPUT_DIR/server.gen.go"
+# Find all OpenAPI spec files
+SPEC_DIR="api/openapi"
+if [ ! -d "$SPEC_DIR" ]; then
+    echo "Error: Directory $SPEC_DIR not found"
+    exit 1
+fi
 
-# Generate User API (user handlers)
-echo "Generating User API..."
-oapi-codegen -package userapi -generate types,fiber,spec \
-  api/openapi/user-api.yaml > "$USER_OUTPUT_DIR/server.gen.go"
+# Counter for generated files
+count=0
+
+# Process each YAML file in the openapi directory
+for spec_file in "$SPEC_DIR"/*.yaml; do
+    if [ ! -f "$spec_file" ]; then
+        echo "No OpenAPI spec files found in $SPEC_DIR"
+        exit 1
+    fi
+
+    # Extract filename without extension (e.g., "user-api.yaml" -> "user-api")
+    filename=$(basename "$spec_file" .yaml)
+
+    # Convert to package name (e.g., "user-api" -> "userapi", "health-api" -> "healthapi")
+    package_name=$(echo "$filename" | sed 's/-//g')
+
+    # Create output directory
+    output_dir="$BASE_OUTPUT_DIR/$package_name"
+    mkdir -p "$output_dir"
+
+    # Generate code
+    echo "Generating $package_name from $filename..."
+    oapi-codegen -package "$package_name" -generate types,fiber,spec \
+        "$spec_file" > "$output_dir/server.gen.go"
+
+    if [ $? -eq 0 ]; then
+        echo "  ✓ Generated: $output_dir/server.gen.go"
+        ((count++))
+    else
+        echo "  ✗ Failed to generate from $spec_file"
+        exit 1
+    fi
+done
 
 echo ""
 echo "✅ OpenAPI code generation complete!"
-echo ""
-echo "Generated files:"
-echo "  - $HEALTH_OUTPUT_DIR/server.gen.go    (Health ServerInterface)"
-echo "  - $USER_OUTPUT_DIR/server.gen.go      (User ServerInterface)"
+echo "   Generated $count package(s) from $SPEC_DIR/*.yaml"
 echo ""
 echo "📝 Note:"
-echo "   Each package contains its own ServerInterface:"
+echo "   - Each .yaml file in $SPEC_DIR automatically generates a package"
+echo "   - Package name derived from filename (e.g., user-api.yaml → userapi)"
+echo "   - Generated code includes types, Fiber ServerInterface, and OpenAPI spec"
 echo ""
-echo "   package healthapi.ServerInterface:"
-echo "     - HealthCheck(c *fiber.Ctx) error"
-echo ""
-echo "   package userapi.ServerInterface:"
-echo "     - Login(c *fiber.Ctx) error"
-echo "     - CreateUser(c *fiber.Ctx) error"
-echo "     - ListUsers(c *fiber.Ctx, params ListUsersParams) error"
-echo "     - GetUserById(c *fiber.Ctx, id UUID) error"
-echo "     - UpdateUser(c *fiber.Ctx, id UUID) error"
-echo "     - DeleteUser(c *fiber.Ctx, id UUID) error"
-echo ""
-echo "   Implement each interface in separate handler packages!"
+echo "To add a new API:"
+echo "   1. Create new YAML file in $SPEC_DIR (e.g., product-api.yaml)"
+echo "   2. Run: make openapi"
+echo "   3. Implement handler/product/handler.go with productapi.ServerInterface"
+echo "   4. Register in router: productapi.RegisterHandlers(api, productHandler)"
