@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/gieart87/gohexaclean/internal/adapter/inbound/grpc/handler"
-	httpHandler "github.com/gieart87/gohexaclean/internal/adapter/inbound/http/handler"
 	"github.com/gieart87/gohexaclean/internal/adapter/outbound/pgsql"
 	"github.com/gieart87/gohexaclean/internal/adapter/outbound/redis"
 	"github.com/gieart87/gohexaclean/internal/adapter/outbound/telemetry"
@@ -39,9 +38,6 @@ type Container struct {
 
 	// Use Cases / Application Services
 	UserService inbound.UserServicePort
-
-	// HTTP Handlers
-	UserHTTPHandler *httpHandler.UserHandler
 
 	// gRPC Handlers
 	UserGRPCHandler *handler.UserHandlerGRPC
@@ -104,9 +100,6 @@ func NewContainer(configPath string) (*Container, error) {
 		container.TokenService,
 		container.CacheService,
 	)
-
-	// Initialize HTTP handlers
-	container.UserHTTPHandler = httpHandler.NewUserHandler(container.UserService)
 
 	// Initialize gRPC handlers
 	container.UserGRPCHandler = handler.NewUserHandlerGRPC(container.UserService)

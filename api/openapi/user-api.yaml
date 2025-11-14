@@ -26,36 +26,12 @@ servers:
     description: Production server
 
 tags:
-  - name: Health
-    description: Health check endpoints
   - name: Auth
     description: Authentication endpoints
   - name: Users
     description: User management endpoints
 
 paths:
-  /health:
-    get:
-      tags:
-        - Health
-      summary: Health check
-      description: Check if the service is running
-      operationId: healthCheck
-      responses:
-        '200':
-          description: Service is healthy
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: ok
-                  message:
-                    type: string
-                    example: Service is running
-
   /auth/login:
     post:
       tags:

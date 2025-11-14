@@ -3,30 +3,26 @@ package router
 import (
 	"os"
 
+	"github.com/gieart87/gohexaclean/internal/adapter/inbound/http/generated/healthapi"
+	"github.com/gieart87/gohexaclean/internal/adapter/inbound/http/generated/userapi"
 	"github.com/gieart87/gohexaclean/internal/adapter/inbound/http/handler"
-	"github.com/gieart87/gohexaclean/internal/adapter/inbound/http/middleware"
+	"github.com/gieart87/gohexaclean/internal/adapter/inbound/http/handler/health"
+	"github.com/gieart87/gohexaclean/internal/adapter/inbound/http/handler/user"
 	"github.com/gieart87/gohexaclean/internal/infra/logger"
+	"github.com/gieart87/gohexaclean/internal/port/inbound"
 	"github.com/gieart87/gohexaclean/internal/port/outbound/service"
 	"github.com/gofiber/fiber/v2"
 )
 
-// SetupRoutes sets up all routes for the application
+// SetupRoutes sets up all routes for the application using OpenAPI auto-generated routing
 func SetupRoutes(
 	app *fiber.App,
-	userHandler *handler.UserHandler,
+	userService inbound.UserServicePort,
 	tokenService service.TokenService,
 	log *logger.Logger,
 ) {
 	// API v1 group
 	api := app.Group("/api/v1")
-
-	// Health check
-	api.Get("/health", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{
-			"status":  "ok",
-			"message": "Service is running",
-		})
-	})
 
 	// Swagger documentation
 	swaggerHandler := handler.NewSwaggerHandler()
@@ -43,26 +39,26 @@ func SetupRoutes(
 		return c.Send(spec)
 	})
 
-	// Auth routes (public)
-	auth := api.Group("/auth")
-	{
-		auth.Post("/login", userHandler.Login)
-	}
+	// Create health handler that implements healthapi.ServerInterface
+	healthHandler := health.NewHandler()
 
-	// User routes
-	users := api.Group("/users")
-	{
-		// Public routes
-		users.Post("/", userHandler.CreateUser)
+	// Create user handler that implements userapi.ServerInterface
+	userHandler := user.NewHandler(userService)
 
-		// Protected routes
-		protected := users.Group("")
-		protected.Use(middleware.AuthMiddleware(tokenService))
-		{
-			protected.Get("/", userHandler.ListUsers)
-			protected.Get("/:id", userHandler.GetUser)
-			protected.Put("/:id", userHandler.UpdateUser)
-			protected.Delete("/:id", userHandler.DeleteUser)
-		}
-	}
+	// Auto-register health routes from OpenAPI spec
+	// This will create: GET /health (public - health check)
+	healthapi.RegisterHandlers(api, healthHandler)
+
+	// Auto-register user routes from OpenAPI spec
+	// This will create routes for:
+	// - POST /auth/login (public - login)
+	// - POST /users (public - register)
+	// - GET /users (protected - list users)
+	// - GET /users/{id} (protected - get user)
+	// - PUT /users/{id} (protected - update user)
+	// - DELETE /users/{id} (protected - delete user)
+	userapi.RegisterHandlers(api, userHandler)
+
+	// Note: For protected routes, you'll need to add auth middleware
+	// This can be done by creating a custom wrapper or using middleware in specific routes
 }

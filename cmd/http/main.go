@@ -41,7 +41,7 @@ func main() {
 	// Setup routes
 	router.SetupRoutes(
 		app,
-		container.UserHTTPHandler,
+		container.UserService,
 		container.TokenService,
 		container.Logger,
 	)

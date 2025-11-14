@@ -1,0 +1,51 @@
+openapi: 3.0.3
+
+info:
+  title: GoHexaClean Health API
+  description: |
+    Health check endpoint for service monitoring.
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development server
+  - url: https://api.example.com/api/v1
+    description: Production server
+
+tags:
+  - name: Health
+    description: Health check endpoints
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Check if the service is running
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+        message:
+          type: string
+          example: Service is running
