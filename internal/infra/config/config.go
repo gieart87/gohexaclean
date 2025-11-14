@@ -200,6 +200,17 @@ func overrideFromEnv(cfg *Config) {
 	if v := os.Getenv("DD_APM_ENABLED"); v == "true" {
 		cfg.Datadog.APMEnabled = true
 	}
+
+	// Open Telemetry configuration
+	if v := os.Getenv("OTEL_ENABLED"); v == "true" {
+		cfg.Telemetry.Enabled = true
+	}
+	if v := os.Getenv("OTEL_SERVICE_NAME"); v != "" {
+		cfg.Telemetry.ServiceName = v
+	}
+	if v := os.Getenv("OTEL_COLLECTOR_ENDPOINT"); v != "" {
+		cfg.Telemetry.CollectorEndpoint = v
+	}
 }
 
 // GetDSN returns the database connection string

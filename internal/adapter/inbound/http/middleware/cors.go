@@ -8,11 +8,20 @@ import (
 
 // CORSMiddleware creates a CORS middleware
 func CORSMiddleware(cfg *config.CORSConfig) fiber.Handler {
+	origins := joinStrings(cfg.AllowOrigins, ",")
+
+	// Security: If origins is wildcard, disable credentials
+	// Cannot use AllowCredentials=true with AllowOrigins="*"
+	allowCredentials := true
+	if origins == "*" {
+		allowCredentials = false
+	}
+
 	return cors.New(cors.Config{
-		AllowOrigins:     joinStrings(cfg.AllowOrigins, ","),
+		AllowOrigins:     origins,
 		AllowMethods:     joinStrings(cfg.AllowMethods, ","),
 		AllowHeaders:     joinStrings(cfg.AllowHeaders, ","),
-		AllowCredentials: true,
+		AllowCredentials: allowCredentials,
 		ExposeHeaders:    "Content-Length",
 		MaxAge:           300,
 	})
