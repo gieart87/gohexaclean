@@ -7,7 +7,6 @@ import (
 	"github.com/gieart87/gohexaclean/internal/adapter/inbound/grpc/handler"
 	"github.com/gieart87/gohexaclean/internal/adapter/outbound/pgsql"
 	"github.com/gieart87/gohexaclean/internal/adapter/outbound/redis"
-	"github.com/gieart87/gohexaclean/internal/adapter/outbound/telemetry"
 	"github.com/gieart87/gohexaclean/internal/app"
 	"github.com/gieart87/gohexaclean/internal/infra/cache"
 	"github.com/gieart87/gohexaclean/internal/infra/config"
@@ -32,8 +31,6 @@ type Container struct {
 	UserRepository repository.UserRepository
 
 	// Services
-	HashService  service.HashService
-	TokenService service.TokenService
 	CacheService service.CacheService
 
 	// Use Cases / Application Services
@@ -83,9 +80,6 @@ func NewContainer(configPath string) (*Container, error) {
 	container.UserRepository = pgsql.NewUserRepositoryPG(database)
 
 	// Initialize services
-	container.HashService = telemetry.NewHashService()
-	container.TokenService = telemetry.NewTokenService(&cfg.JWT)
-
 	if container.RedisClient != nil {
 		container.CacheService = redis.NewCacheServiceRedis(container.RedisClient)
 	} else {
@@ -96,9 +90,8 @@ func NewContainer(configPath string) (*Container, error) {
 	// Initialize use cases / application services
 	container.UserService = app.NewUserService(
 		container.UserRepository,
-		container.HashService,
-		container.TokenService,
 		container.CacheService,
+		&cfg.JWT,
 	)
 
 	// Initialize gRPC handlers

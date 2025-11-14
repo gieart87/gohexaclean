@@ -23,26 +23,29 @@ func NewUserHandlerGRPC(userService inbound.UserServicePort) *UserHandlerGRPC {
 	}
 }
 
-// CreateUser creates a new user
-func (h *UserHandlerGRPC) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb.UserResponse, error) {
+// CreateUser creates a new user and returns with token (for gRPC, we return LoginResponse with token)
+func (h *UserHandlerGRPC) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb.LoginResponse, error) {
 	createReq := &request.CreateUserRequest{
 		Email:    req.Email,
 		Name:     req.Name,
 		Password: req.Password,
 	}
 
-	user, err := h.userService.CreateUser(ctx, createReq)
+	registerResp, err := h.userService.CreateUser(ctx, createReq)
 	if err != nil {
 		return nil, err
 	}
 
-	return &pb.UserResponse{
-		Id:        user.ID.String(),
-		Email:     user.Email,
-		Name:      user.Name,
-		IsActive:  user.IsActive,
-		CreatedAt: timestamppb.New(user.CreatedAt),
-		UpdatedAt: timestamppb.New(user.UpdatedAt),
+	return &pb.LoginResponse{
+		Token: registerResp.Token,
+		User: &pb.UserResponse{
+			Id:        registerResp.User.ID.String(),
+			Email:     registerResp.User.Email,
+			Name:      registerResp.User.Name,
+			IsActive:  registerResp.User.IsActive,
+			CreatedAt: timestamppb.New(registerResp.User.CreatedAt),
+			UpdatedAt: timestamppb.New(registerResp.User.UpdatedAt),
+		},
 	}, nil
 }
 

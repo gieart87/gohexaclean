@@ -10,7 +10,6 @@ import (
 	"github.com/gieart87/gohexaclean/internal/adapter/inbound/http/handler/user"
 	"github.com/gieart87/gohexaclean/internal/infra/logger"
 	"github.com/gieart87/gohexaclean/internal/port/inbound"
-	"github.com/gieart87/gohexaclean/internal/port/outbound/service"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -18,7 +17,7 @@ import (
 func SetupRoutes(
 	app *fiber.App,
 	userService inbound.UserServicePort,
-	tokenService service.TokenService,
+	jwtSecret string,
 	log *logger.Logger,
 ) {
 	// API v1 group

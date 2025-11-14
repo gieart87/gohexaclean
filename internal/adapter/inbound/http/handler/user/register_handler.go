@@ -19,7 +19,7 @@ func (h *Handler) CreateUser(c *fiber.Ctx) error {
 	}
 
 	// Convert generated type to domain DTO
-	user, err := h.userService.CreateUser(c.Context(), &request.CreateUserRequest{
+	registerResp, err := h.userService.CreateUser(c.Context(), &request.CreateUserRequest{
 		Email:    string(req.Email),
 		Name:     req.Name,
 		Password: req.Password,
@@ -32,6 +32,6 @@ func (h *Handler) CreateUser(c *fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(
-		response.NewSuccessResponse("User created successfully", user),
+		response.NewSuccessResponse("User registered successfully", registerResp),
 	)
 }

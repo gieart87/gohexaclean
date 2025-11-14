@@ -7,37 +7,37 @@ import (
 	"github.com/gieart87/gohexaclean/internal/domain"
 	"github.com/gieart87/gohexaclean/internal/dto/request"
 	"github.com/gieart87/gohexaclean/internal/dto/response"
+	"github.com/gieart87/gohexaclean/internal/infra/config"
 	"github.com/gieart87/gohexaclean/internal/port/inbound"
 	"github.com/gieart87/gohexaclean/internal/port/outbound/repository"
 	"github.com/gieart87/gohexaclean/internal/port/outbound/service"
+	"github.com/gieart87/gohexaclean/pkg/auth"
+	"github.com/gieart87/gohexaclean/pkg/crypto"
 	"github.com/google/uuid"
 )
 
 // UserService implements the UserServicePort interface
 type UserService struct {
 	userRepo     repository.UserRepository
-	hashService  service.HashService
-	tokenService service.TokenService
 	cacheService service.CacheService
+	jwtConfig    *config.JWTConfig
 }
 
 // NewUserService creates a new user service
 func NewUserService(
 	userRepo repository.UserRepository,
-	hashService service.HashService,
-	tokenService service.TokenService,
 	cacheService service.CacheService,
+	jwtConfig *config.JWTConfig,
 ) inbound.UserServicePort {
 	return &UserService{
 		userRepo:     userRepo,
-		hashService:  hashService,
-		tokenService: tokenService,
 		cacheService: cacheService,
+		jwtConfig:    jwtConfig,
 	}
 }
 
-// CreateUser creates a new user
-func (s *UserService) CreateUser(ctx context.Context, req *request.CreateUserRequest) (*response.UserResponse, error) {
+// CreateUser creates a new user and returns a token
+func (s *UserService) CreateUser(ctx context.Context, req *request.CreateUserRequest) (*response.LoginResponse, error) {
 	// Check if user already exists
 	exists, err := s.userRepo.ExistsByEmail(ctx, req.Email)
 	if err != nil {
@@ -48,7 +48,7 @@ func (s *UserService) CreateUser(ctx context.Context, req *request.CreateUserReq
 	}
 
 	// Hash password
-	hashedPassword, err := s.hashService.HashPassword(req.Password)
+	hashedPassword, err := crypto.HashPassword(req.Password)
 	if err != nil {
 		return nil, fmt.Errorf("failed to hash password: %w", err)
 	}
@@ -66,7 +66,16 @@ func (s *UserService) CreateUser(ctx context.Context, req *request.CreateUserReq
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
-	return response.NewUserResponse(user), nil
+	// Generate token for the newly registered user
+	token, err := auth.GenerateJWT(user.ID, user.Email, s.jwtConfig.Secret, s.jwtConfig.Expired)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate token: %w", err)
+	}
+
+	return &response.LoginResponse{
+		Token: token,
+		User:  response.NewUserResponse(user),
+	}, nil
 }
 
 // GetUserByID retrieves a user by ID
@@ -130,12 +139,12 @@ func (s *UserService) Login(ctx context.Context, req *request.LoginRequest) (*re
 	}
 
 	// Check password
-	if !s.hashService.CheckPasswordHash(req.Password, user.Password) {
+	if !crypto.CheckPasswordHash(req.Password, user.Password) {
 		return nil, domain.ErrInvalidCredentials
 	}
 
 	// Generate token
-	token, err := s.tokenService.GenerateToken(user.ID, user.Email)
+	token, err := auth.GenerateJWT(user.ID, user.Email, s.jwtConfig.Secret, s.jwtConfig.Expired)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate token: %w", err)
 	}

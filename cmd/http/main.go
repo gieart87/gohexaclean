@@ -42,7 +42,7 @@ func main() {
 	router.SetupRoutes(
 		app,
 		container.UserService,
-		container.TokenService,
+		container.Config.JWT.Secret,
 		container.Logger,
 	)
 
