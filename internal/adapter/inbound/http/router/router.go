@@ -1,6 +1,8 @@
 package router
 
 import (
+	"os"
+
 	"github.com/gieart87/gohexaclean/internal/adapter/inbound/http/handler"
 	"github.com/gieart87/gohexaclean/internal/adapter/inbound/http/middleware"
 	"github.com/gieart87/gohexaclean/internal/infra/logger"
@@ -24,6 +26,21 @@ func SetupRoutes(
 			"status":  "ok",
 			"message": "Service is running",
 		})
+	})
+
+	// Swagger documentation
+	swaggerHandler := handler.NewSwaggerHandler()
+	api.Get("/swagger", swaggerHandler.ServeSwaggerUI)
+	api.Get("/swagger/spec", func(c *fiber.Ctx) error {
+		// Read OpenAPI spec file
+		spec, err := os.ReadFile("api/openapi/user-api.yaml")
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to load API specification",
+			})
+		}
+		c.Set("Content-Type", "application/x-yaml")
+		return c.Send(spec)
 	})
 
 	// Auth routes (public)

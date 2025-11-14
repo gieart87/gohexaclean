@@ -11,6 +11,7 @@ A modern, scalable, and maintainable Go microservice boilerplate combining **Hex
 
 - ✅ **Hybrid Architecture**: Hexagonal + Clean Architecture
 - ✅ **Dual Protocol Support**: HTTP (Fiber) & gRPC
+- ✅ **API-First Development**: OpenAPI 3.0 specification with Swagger UI
 - ✅ **Framework Agnostic**: Easy to switch between Fiber, Gin, Echo, or Chi
 - ✅ **PostgreSQL + Redis**: Production-ready database setup
 - ✅ **Dependency Injection**: Clean DI container pattern
@@ -21,6 +22,7 @@ A modern, scalable, and maintainable Go microservice boilerplate combining **Hex
 - ✅ **SOLID Principles**: Highly testable and maintainable
 - ✅ **Configuration**: Environment-based config with YAML support
 - ✅ **Observability Ready**: Telemetry, metrics, and health checks
+- ✅ **Interactive API Docs**: Auto-generated Swagger documentation
 
 ## Architecture
 
@@ -242,6 +244,39 @@ make run-grpc
 ```
 
 ## API Documentation
+
+### 📖 Interactive Swagger UI
+
+Access the interactive API documentation at:
+
+```
+http://localhost:8080/api/v1/swagger
+```
+
+Features:
+- **Try it out**: Test endpoints directly from browser
+- **Authentication**: Test with JWT tokens
+- **Request/Response examples**: See all schemas
+- **OpenAPI 3.0 compliant**: Industry standard
+
+### 📝 OpenAPI Specification
+
+View the raw OpenAPI spec at:
+
+```
+http://localhost:8080/api/v1/swagger/spec
+```
+
+Or find it in the repository:
+- `api/openapi/user-api.yaml` - User Management API
+
+### 🔧 API-First Development
+
+This project follows **API-First** approach. See [docs/API_FIRST_WORKFLOW.md](docs/API_FIRST_WORKFLOW.md) for:
+- How to design APIs in OpenAPI
+- Code generation from spec
+- Testing against spec
+- Best practices
 
 ### HTTP Endpoints
 
