@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/gieart87/gohexaclean/internal/adapter/outbound/event"
 	"github.com/gieart87/gohexaclean/internal/domain"
 	"github.com/gieart87/gohexaclean/internal/dto/request"
 	"github.com/gieart87/gohexaclean/internal/dto/response"
@@ -18,9 +19,10 @@ import (
 
 // UserService implements the UserServicePort interface
 type UserService struct {
-	userRepo     repository.UserRepository
-	cacheService service.CacheService
-	jwtConfig    *config.JWTConfig
+	userRepo       repository.UserRepository
+	cacheService   service.CacheService
+	jwtConfig      *config.JWTConfig
+	eventPublisher *event.UserEventPublisher
 }
 
 // NewUserService creates a new user service
@@ -28,11 +30,13 @@ func NewUserService(
 	userRepo repository.UserRepository,
 	cacheService service.CacheService,
 	jwtConfig *config.JWTConfig,
+	eventPublisher *event.UserEventPublisher,
 ) inbound.UserServicePort {
 	return &UserService{
-		userRepo:     userRepo,
-		cacheService: cacheService,
-		jwtConfig:    jwtConfig,
+		userRepo:       userRepo,
+		cacheService:   cacheService,
+		jwtConfig:      jwtConfig,
+		eventPublisher: eventPublisher,
 	}
 }
 
@@ -70,6 +74,15 @@ func (s *UserService) CreateUser(ctx context.Context, req *request.CreateUserReq
 	token, err := auth.GenerateJWT(user.ID, user.Email, s.jwtConfig.Secret, s.jwtConfig.Expired)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate token: %w", err)
+	}
+
+	// Publish user created event
+	if s.eventPublisher != nil {
+		event := domain.NewUserCreatedEvent(user.ID, user.Email, user.Name)
+		if err := s.eventPublisher.PublishUserCreated(ctx, event); err != nil {
+			// Log error but don't fail the operation
+			fmt.Printf("failed to publish user created event: %v\n", err)
+		}
 	}
 
 	return &response.LoginResponse{
@@ -115,6 +128,14 @@ func (s *UserService) UpdateUser(ctx context.Context, id uuid.UUID, req *request
 	cacheKey := fmt.Sprintf("user:%s", id.String())
 	_ = s.cacheService.Delete(ctx, cacheKey)
 
+	// Publish user updated event
+	if s.eventPublisher != nil {
+		event := domain.NewUserUpdatedEvent(user.ID, user.Name)
+		if err := s.eventPublisher.PublishUserUpdated(ctx, event); err != nil {
+			fmt.Printf("failed to publish user updated event: %v\n", err)
+		}
+	}
+
 	return response.NewUserResponse(user), nil
 }
 
@@ -127,6 +148,14 @@ func (s *UserService) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	// Invalidate cache
 	cacheKey := fmt.Sprintf("user:%s", id.String())
 	_ = s.cacheService.Delete(ctx, cacheKey)
+
+	// Publish user deleted event
+	if s.eventPublisher != nil {
+		event := domain.NewUserDeletedEvent(id)
+		if err := s.eventPublisher.PublishUserDeleted(ctx, event); err != nil {
+			fmt.Printf("failed to publish user deleted event: %v\n", err)
+		}
+	}
 
 	return nil
 }
@@ -147,6 +176,14 @@ func (s *UserService) Login(ctx context.Context, req *request.LoginRequest) (*re
 	token, err := auth.GenerateJWT(user.ID, user.Email, s.jwtConfig.Secret, s.jwtConfig.Expired)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate token: %w", err)
+	}
+
+	// Publish user logged in event
+	if s.eventPublisher != nil {
+		event := domain.NewUserLoggedInEvent(user.ID, user.Email)
+		if err := s.eventPublisher.PublishUserLoggedIn(ctx, event); err != nil {
+			fmt.Printf("failed to publish user logged in event: %v\n", err)
+		}
 	}
 
 	return &response.LoginResponse{

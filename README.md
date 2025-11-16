@@ -13,15 +13,18 @@ A modern, scalable, and maintainable Go microservice boilerplate combining **Hex
 - ✅ **Dual Protocol Support**: HTTP (Fiber) & gRPC
 - ✅ **API-First Development**: OpenAPI 3.0 specification with Swagger UI
 - ✅ **Framework Agnostic**: Easy to switch between Fiber, Gin, Echo, or Chi
-- ✅ **PostgreSQL + Redis**: Production-ready database setup
+- ✅ **Database**: PostgreSQL with GORM ORM & Goose migrations
+- ✅ **Caching**: Redis with graceful fallback
+- ✅ **Message Broker**: Pluggable broker architecture (RabbitMQ, Kafka, Pub/Sub, NATS)
+- ✅ **Event-Driven**: Domain events with publisher/consumer pattern
 - ✅ **Dependency Injection**: Clean DI container pattern
 - ✅ **Structured Logging**: Using Uber's Zap
 - ✅ **JWT Authentication**: Built-in auth middleware
+- ✅ **Testing**: Comprehensive unit tests with >=80% coverage
 - ✅ **Docker Ready**: Multi-stage Dockerfile & docker-compose
-- ✅ **Database Migrations**: SQL migration support
 - ✅ **SOLID Principles**: Highly testable and maintainable
 - ✅ **Configuration**: Environment-based config with YAML support
-- ✅ **Observability Ready**: Telemetry, metrics, and health checks
+- ✅ **Observability**: Multi-vendor telemetry (Datadog + OpenTelemetry)
 - ✅ **Interactive API Docs**: Auto-generated Swagger documentation
 
 ## Architecture
@@ -69,12 +72,14 @@ This boilerplate implements a **hybrid architecture** combining the best of both
         │  Outbound Adapters (Driven)   │
         │  - PostgreSQL Repository      │
         │  - Redis Cache                │
+        │  - RabbitMQ Broker            │
+        │  - Event Publisher            │
         │  - External APIs              │
         └───────────────┬───────────────┘
                         │
 ┌───────────────────────▼─────────────────────────────────────┐
 │                  Infrastructure                              │
-│              (DB, Cache, Config, Logger)                    │
+│       (DB, Cache, Broker, Config, Logger, Telemetry)        │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -106,7 +111,8 @@ gohexaclean/
 ├── docs/                           # Documentation
 │   ├── API_FIRST_WORKFLOW.md
 │   ├── SWAGGER_GUIDE.md
-│   └── OPENAPI_FIBER_INTEGRATION.md
+│   ├── OPENAPI_FIBER_INTEGRATION.md
+│   └── MESSAGE_BROKER.md
 ├── scripts/                        # Build and utility scripts
 │   ├── generate-openapi.sh        # Auto-generate from OpenAPI specs
 │   └── generate-proto.sh          # Generate from protobuf
@@ -153,12 +159,16 @@ gohexaclean/
 │   │   └── outbound/
 │   │       ├── pgsql/             # PostgreSQL adapter
 │   │       ├── redis/             # Redis adapter
-│   │       └── telemetry/         # Telemetry services
+│   │       ├── rabbitmq/          # RabbitMQ broker adapter
+│   │       ├── event/             # Event publishers
+│   │       ├── datadog/           # Datadog telemetry
+│   │       └── otel/              # OpenTelemetry
 │   ├── infra/                      # Shared infrastructure
 │   │   ├── db/
 │   │   │   ├── connection.go
 │   │   │   ├── migrations/
 │   │   │   └── seeders/
+│   │   ├── broker/                # Broker factory
 │   │   ├── config/
 │   │   ├── logger/
 │   │   └── cache/
@@ -186,7 +196,8 @@ gohexaclean/
 
 - Go 1.21 or higher
 - PostgreSQL 15+
-- Redis 7+
+- Redis 7+ (optional, graceful fallback)
+- RabbitMQ 3.13+ (optional, can be disabled)
 - Docker & Docker Compose (optional)
 - Protocol Buffer Compiler (for gRPC)
 
@@ -227,6 +238,9 @@ Edit `.env` or `config/app.yaml` with your database credentials.
 ```bash
 # Start all services (PostgreSQL, Redis, HTTP, gRPC)
 make docker-up
+
+# Start with RabbitMQ (optional)
+docker-compose -f docker-compose.rabbitmq.yml up -d
 
 # View logs
 make docker-logs
@@ -443,6 +457,66 @@ The architecture is designed to be framework-agnostic. To switch from Fiber to G
 
 The business logic (Domain, Application, Ports) remains unchanged!
 
+## Message Broker & Event-Driven Architecture
+
+This boilerplate includes a **pluggable message broker** implementation supporting:
+
+- ✅ **RabbitMQ** (fully implemented)
+- 🔜 **Apache Kafka** (planned)
+- 🔜 **Google Cloud Pub/Sub** (planned)
+- 🔜 **NATS** (planned)
+
+### Quick Start with RabbitMQ
+
+```bash
+# 1. Start RabbitMQ
+docker-compose -f docker-compose.rabbitmq.yml up -d
+
+# 2. Enable broker in .env
+BROKER_ENABLED=true
+BROKER_TYPE=rabbitmq
+RABBITMQ_URL=amqp://guest:guest@localhost:5672/
+
+# 3. Run the application
+make run-http
+```
+
+### Domain Events
+
+The application automatically publishes and consumes domain events:
+
+| Event | Trigger | Use Cases |
+|-------|---------|-----------|
+| `user.created` | User registration | Welcome email, user profile creation, analytics |
+| `user.updated` | Profile update | Cache invalidation, search index update |
+| `user.deleted` | User deletion | Data cleanup, archiving |
+| `user.logged_in` | Login success | Login tracking, security monitoring |
+
+### Features
+
+- **Graceful Degradation**: Application works without broker
+- **Auto-Reconnection**: Automatic reconnection with exponential backoff
+- **Event Acknowledgment**: Messages acknowledged after successful processing
+- **Type-Safe Events**: Strongly-typed domain events
+- **Flexible Architecture**: Easy to add Kafka, Pub/Sub, or NATS
+
+### Documentation
+
+See [docs/MESSAGE_BROKER.md](docs/MESSAGE_BROKER.md) for:
+- Detailed configuration
+- Event structure
+- Adding custom events
+- Switching brokers
+- Monitoring & troubleshooting
+
+### Access RabbitMQ Management UI
+
+```
+URL: http://localhost:15672
+Username: guest
+Password: guest
+```
+
 ## Testing
 
 ```bash
@@ -458,6 +532,13 @@ make test-integration
 # Generate coverage report
 make test-coverage
 ```
+
+Current test coverage: **>91%**
+
+Test files:
+- `internal/adapter/outbound/pgsql/user_repository_pg_test.go` - 80% coverage
+- `internal/app/user_service_test.go` - 93.3% coverage
+- `internal/adapter/inbound/http/handler/user/handler_test.go` - 100% coverage
 
 ## Configuration
 

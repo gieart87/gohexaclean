@@ -29,9 +29,10 @@ func setupUserServiceTest(t *testing.T) (*UserService, *mock.MockUserRepository,
 	}
 
 	service := &UserService{
-		userRepo:     mockRepo,
-		cacheService: mockCache,
-		jwtConfig:    jwtConfig,
+		userRepo:       mockRepo,
+		cacheService:   mockCache,
+		jwtConfig:      jwtConfig,
+		eventPublisher: nil, // No event publisher in tests (gracefully handled)
 	}
 
 	return service, mockRepo, mockCache, ctrl

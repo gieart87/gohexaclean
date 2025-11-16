@@ -22,6 +22,7 @@ type Config struct {
 	Telemetry TelemetryConfig `yaml:"telemetry"`
 	Metrics   MetricsConfig   `yaml:"metrics"`
 	Datadog   DatadogConfig   `yaml:"datadog"`
+	Broker    BrokerConfig    `yaml:"broker"`
 }
 
 type AppConfig struct {
@@ -110,6 +111,43 @@ type DatadogConfig struct {
 	Namespace  string   `yaml:"namespace"`
 	Tags       []string `yaml:"tags"`
 	APMEnabled bool     `yaml:"apm_enabled"`
+}
+
+type BrokerConfig struct {
+	Type     string        `yaml:"type"` // rabbitmq, kafka, pubsub, nats
+	Enabled  bool          `yaml:"enabled"`
+	RabbitMQ RabbitMQConfig `yaml:"rabbitmq"`
+	// Future: Kafka, PubSub, NATS configs can be added here
+}
+
+type RabbitMQConfig struct {
+	URL              string        `yaml:"url"`
+	Host             string        `yaml:"host"`
+	Port             int           `yaml:"port"`
+	User             string        `yaml:"user"`
+	Password         string        `yaml:"password"`
+	VHost            string        `yaml:"vhost"`
+	Exchange         string        `yaml:"exchange"`
+	ExchangeType     string        `yaml:"exchange_type"`
+	QueuePrefix      string        `yaml:"queue_prefix"`
+	PrefetchCount    int           `yaml:"prefetch_count"`
+	ReconnectDelay   time.Duration `yaml:"reconnect_delay"`
+	MaxReconnect     int           `yaml:"max_reconnect"`
+	Persistent       bool          `yaml:"persistent"`
+	ConnectionName   string        `yaml:"connection_name"`
+}
+
+// GetAMQPURL returns the RabbitMQ connection URL
+func (c *RabbitMQConfig) GetAMQPURL() string {
+	if c.URL != "" {
+		return c.URL
+	}
+	vhost := c.VHost
+	if vhost == "" {
+		vhost = "/"
+	}
+	return fmt.Sprintf("amqp://%s:%s@%s:%d/%s",
+		c.User, c.Password, c.Host, c.Port, vhost)
 }
 
 // Load loads configuration from YAML file and environment variables
@@ -210,6 +248,26 @@ func overrideFromEnv(cfg *Config) {
 	}
 	if v := os.Getenv("OTEL_COLLECTOR_ENDPOINT"); v != "" {
 		cfg.Telemetry.CollectorEndpoint = v
+	}
+
+	// Message Broker configuration
+	if v := os.Getenv("BROKER_TYPE"); v != "" {
+		cfg.Broker.Type = v
+	}
+	if v := os.Getenv("BROKER_ENABLED"); v == "true" {
+		cfg.Broker.Enabled = true
+	}
+	if v := os.Getenv("RABBITMQ_URL"); v != "" {
+		cfg.Broker.RabbitMQ.URL = v
+	}
+	if v := os.Getenv("RABBITMQ_HOST"); v != "" {
+		cfg.Broker.RabbitMQ.Host = v
+	}
+	if v := os.Getenv("RABBITMQ_USER"); v != "" {
+		cfg.Broker.RabbitMQ.User = v
+	}
+	if v := os.Getenv("RABBITMQ_PASSWORD"); v != "" {
+		cfg.Broker.RabbitMQ.Password = v
 	}
 }
 

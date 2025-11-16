@@ -4,17 +4,21 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/gieart87/gohexaclean/internal/adapter/inbound/consumer"
 	"github.com/gieart87/gohexaclean/internal/adapter/inbound/grpc/handler"
 	"github.com/gieart87/gohexaclean/internal/adapter/outbound/datadog"
+	"github.com/gieart87/gohexaclean/internal/adapter/outbound/event"
 	"github.com/gieart87/gohexaclean/internal/adapter/outbound/otel"
 	"github.com/gieart87/gohexaclean/internal/adapter/outbound/pgsql"
 	"github.com/gieart87/gohexaclean/internal/adapter/outbound/redis"
 	"github.com/gieart87/gohexaclean/internal/app"
+	brokerFactory "github.com/gieart87/gohexaclean/internal/infra/broker"
 	"github.com/gieart87/gohexaclean/internal/infra/cache"
 	"github.com/gieart87/gohexaclean/internal/infra/config"
 	"github.com/gieart87/gohexaclean/internal/infra/db"
 	"github.com/gieart87/gohexaclean/internal/infra/logger"
 	"github.com/gieart87/gohexaclean/internal/port/inbound"
+	"github.com/gieart87/gohexaclean/internal/port/outbound/broker"
 	"github.com/gieart87/gohexaclean/internal/port/outbound/repository"
 	"github.com/gieart87/gohexaclean/internal/port/outbound/service"
 	"github.com/gieart87/gohexaclean/internal/port/outbound/telemetry"
@@ -36,6 +40,11 @@ type Container struct {
 
 	// Services
 	CacheService service.CacheService
+
+	// Message Broker
+	MessageBroker   broker.MessageBroker
+	EventPublisher  *event.UserEventPublisher
+	EventConsumer   *consumer.UserEventConsumer
 
 	// Telemetry
 	MetricsService telemetry.MetricsService
@@ -154,11 +163,40 @@ func NewContainer(configPath string) (*Container, error) {
 		container.CacheService = &NoOpCacheService{}
 	}
 
+	// Initialize message broker
+	if cfg.Broker.Enabled {
+		messageBroker, err := brokerFactory.NewMessageBroker(&cfg.Broker)
+		if err != nil {
+			log.Warn("Failed to create message broker, events will be disabled: " + err.Error())
+		} else {
+			if err := messageBroker.Connect(ctx); err != nil {
+				log.Warn("Failed to connect to message broker, events will be disabled: " + err.Error())
+			} else {
+				container.MessageBroker = messageBroker
+				log.Info("Message broker connected successfully")
+
+				// Initialize event publisher
+				container.EventPublisher = event.NewUserEventPublisher(messageBroker)
+
+				// Initialize event consumer
+				container.EventConsumer = consumer.NewUserEventConsumer(messageBroker)
+				if err := container.EventConsumer.Start(ctx); err != nil {
+					log.Warn("Failed to start event consumer: " + err.Error())
+				} else {
+					log.Info("Event consumer started successfully")
+				}
+			}
+		}
+	} else {
+		log.Info("Message broker is disabled")
+	}
+
 	// Initialize use cases / application services
 	container.UserService = app.NewUserService(
 		container.UserRepository,
 		container.CacheService,
 		&cfg.JWT,
+		container.EventPublisher,
 	)
 
 	// Initialize gRPC handlers
@@ -184,6 +222,19 @@ func (c *Container) Close() error {
 	if c.RedisClient != nil {
 		if err := cache.Close(c.RedisClient); err != nil {
 			c.Logger.Error("Failed to close Redis connection")
+		}
+	}
+
+	// Close message broker
+	if c.EventConsumer != nil {
+		if err := c.EventConsumer.Stop(); err != nil {
+			c.Logger.Error("Failed to stop event consumer")
+		}
+	}
+
+	if c.MessageBroker != nil {
+		if err := c.MessageBroker.Close(); err != nil {
+			c.Logger.Error("Failed to close message broker")
 		}
 	}
 
