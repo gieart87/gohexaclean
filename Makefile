@@ -50,26 +50,35 @@ build-grpc:
 
 ##@ Testing
 
-## test: Run tests
+## test: Run all tests with coverage
 test:
 	@echo "$(COLOR_GREEN)Running tests...$(COLOR_RESET)"
 	go test -v -race -coverprofile=coverage.out ./...
+	@echo "$(COLOR_GREEN)Calculating coverage...$(COLOR_RESET)"
+	@go tool cover -func=coverage.out | grep total | awk '{print "Total Coverage: " $$3}'
 
 ## test-coverage: Run tests with coverage report
 test-coverage: test
 	@echo "$(COLOR_GREEN)Generating coverage report...$(COLOR_RESET)"
 	go tool cover -html=coverage.out -o coverage.html
 	@echo "$(COLOR_GREEN)Coverage report generated: coverage.html$(COLOR_RESET)"
+	@open coverage.html 2>/dev/null || xdg-open coverage.html 2>/dev/null || echo "Please open coverage.html manually"
 
-## test-unit: Run unit tests
+## test-unit: Run unit tests with coverage
 test-unit:
 	@echo "$(COLOR_GREEN)Running unit tests...$(COLOR_RESET)"
-	go test -v -short ./test/unit/...
+	go test -v -cover ./internal/adapter/outbound/pgsql/... ./internal/app/... ./internal/adapter/inbound/http/handler/...
+	@echo "$(COLOR_GREEN)Unit tests complete!$(COLOR_RESET)"
 
 ## test-integration: Run integration tests
 test-integration:
 	@echo "$(COLOR_GREEN)Running integration tests...$(COLOR_RESET)"
 	go test -v ./test/integration/...
+
+## test-verbose: Run tests with verbose output
+test-verbose:
+	@echo "$(COLOR_GREEN)Running tests with verbose output...$(COLOR_RESET)"
+	go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
 
 ##@ Code Quality
 
@@ -145,28 +154,38 @@ openapi-validate:
 
 ##@ Database
 
-## migrate-up: Run database migrations
+## migrate-up: Run database migrations using goose
 migrate-up:
 	@echo "$(COLOR_GREEN)Running migrations...$(COLOR_RESET)"
-	@echo "$(COLOR_YELLOW)Please implement migration tool (e.g., golang-migrate)$(COLOR_RESET)"
+	cd internal/infra/db/migrations && goose postgres "host=localhost port=5432 user=postgres password=postgres dbname=gohexaclean sslmode=disable" up
 
 ## migrate-down: Rollback database migrations
 migrate-down:
 	@echo "$(COLOR_GREEN)Rolling back migrations...$(COLOR_RESET)"
-	@echo "$(COLOR_YELLOW)Please implement migration tool (e.g., golang-migrate)$(COLOR_RESET)"
+	cd internal/infra/db/migrations && goose postgres "host=localhost port=5432 user=postgres password=postgres dbname=gohexaclean sslmode=disable" down
+
+## migrate-status: Check migration status
+migrate-status:
+	@echo "$(COLOR_GREEN)Checking migration status...$(COLOR_RESET)"
+	cd internal/infra/db/migrations && goose postgres "host=localhost port=5432 user=postgres password=postgres dbname=gohexaclean sslmode=disable" status
 
 ## migrate-create: Create new migration file
 migrate-create:
 	@echo "$(COLOR_GREEN)Creating migration...$(COLOR_RESET)"
 	@read -p "Enter migration name: " name; \
-	timestamp=$$(date +%Y%m%d%H%M%S); \
-	touch internal/infra/db/migrations/$${timestamp}_$${name}.sql; \
-	echo "$(COLOR_GREEN)Migration created: internal/infra/db/migrations/$${timestamp}_$${name}.sql$(COLOR_RESET)"
+	cd internal/infra/db/migrations && goose create $${name} sql; \
+	echo "$(COLOR_GREEN)Migration created in internal/infra/db/migrations/$(COLOR_RESET)"
+
+## migrate-reset: Reset database (down all, then up all)
+migrate-reset:
+	@echo "$(COLOR_GREEN)Resetting database...$(COLOR_RESET)"
+	cd internal/infra/db/migrations && goose postgres "host=localhost port=5432 user=postgres password=postgres dbname=gohexaclean sslmode=disable" reset
+	cd internal/infra/db/migrations && goose postgres "host=localhost port=5432 user=postgres password=postgres dbname=gohexaclean sslmode=disable" up
 
 ## seed: Run database seeders
 seed:
 	@echo "$(COLOR_GREEN)Running seeders...$(COLOR_RESET)"
-	psql -h localhost -U postgres -d gohexaclean -f internal/infra/db/seeders/001_seed_users.sql
+	go run internal/infra/db/seeders/main.go
 
 ##@ Docker
 
@@ -210,6 +229,16 @@ clean-all: clean
 	rm -rf vendor/
 	go clean -modcache
 
+##@ Mocks
+
+## mock-gen: Generate mocks for testing
+mock-gen:
+	@echo "$(COLOR_GREEN)Generating mocks...$(COLOR_RESET)"
+	mockgen -source=internal/port/outbound/repository/user_repository.go -destination=internal/port/outbound/repository/mock/mock_user_repository.go -package=mock
+	mockgen -source=internal/port/outbound/service/cache_service.go -destination=internal/port/outbound/service/mock/mock_cache_service.go -package=mock
+	mockgen -source=internal/port/inbound/user_service_port.go -destination=internal/port/inbound/mock/mock_user_service.go -package=mock
+	@echo "$(COLOR_GREEN)Mocks generated successfully!$(COLOR_RESET)"
+
 ##@ Utilities
 
 ## install-tools: Install development tools
@@ -218,6 +247,9 @@ install-tools:
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+	go install github.com/golang/mock/mockgen@latest
+	go install github.com/pressly/goose/v3/cmd/goose@latest
+	@echo "$(COLOR_GREEN)Tools installed!$(COLOR_RESET)"
 
 ## version: Show version information
 version:

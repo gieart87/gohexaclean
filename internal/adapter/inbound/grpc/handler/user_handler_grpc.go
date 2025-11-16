@@ -42,7 +42,7 @@ func (h *UserHandlerGRPC) CreateUser(ctx context.Context, req *pb.CreateUserRequ
 			Id:        registerResp.User.ID.String(),
 			Email:     registerResp.User.Email,
 			Name:      registerResp.User.Name,
-			IsActive:  registerResp.User.IsActive,
+			IsActive:  true, // Active by default for new users
 			CreatedAt: timestamppb.New(registerResp.User.CreatedAt),
 			UpdatedAt: timestamppb.New(registerResp.User.UpdatedAt),
 		},
@@ -65,7 +65,7 @@ func (h *UserHandlerGRPC) GetUser(ctx context.Context, req *pb.GetUserRequest) (
 		Id:        user.ID.String(),
 		Email:     user.Email,
 		Name:      user.Name,
-		IsActive:  user.IsActive,
+		IsActive:  true, // No soft delete check in response, assume active
 		CreatedAt: timestamppb.New(user.CreatedAt),
 		UpdatedAt: timestamppb.New(user.UpdatedAt),
 	}, nil
@@ -91,7 +91,7 @@ func (h *UserHandlerGRPC) UpdateUser(ctx context.Context, req *pb.UpdateUserRequ
 		Id:        user.ID.String(),
 		Email:     user.Email,
 		Name:      user.Name,
-		IsActive:  user.IsActive,
+		IsActive:  true, // No soft delete check in response, assume active
 		CreatedAt: timestamppb.New(user.CreatedAt),
 		UpdatedAt: timestamppb.New(user.UpdatedAt),
 	}, nil
@@ -140,7 +140,7 @@ func (h *UserHandlerGRPC) ListUsers(ctx context.Context, req *pb.ListUsersReques
 			Id:        user.ID.String(),
 			Email:     user.Email,
 			Name:      user.Name,
-			IsActive:  user.IsActive,
+			IsActive:  true, // No soft delete check in response, assume active
 			CreatedAt: timestamppb.New(user.CreatedAt),
 			UpdatedAt: timestamppb.New(user.UpdatedAt),
 		}
@@ -172,7 +172,7 @@ func (h *UserHandlerGRPC) Login(ctx context.Context, req *pb.LoginRequest) (*pb.
 			Id:        loginResp.User.ID.String(),
 			Email:     loginResp.User.Email,
 			Name:      loginResp.User.Name,
-			IsActive:  loginResp.User.IsActive,
+			IsActive:  true, // No soft delete check in response, assume active
 			CreatedAt: timestamppb.New(loginResp.User.CreatedAt),
 			UpdatedAt: timestamppb.New(loginResp.User.UpdatedAt),
 		},

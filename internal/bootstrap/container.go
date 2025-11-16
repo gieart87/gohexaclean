@@ -2,7 +2,6 @@ package bootstrap
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 
 	"github.com/gieart87/gohexaclean/internal/adapter/inbound/grpc/handler"
@@ -20,6 +19,7 @@ import (
 	"github.com/gieart87/gohexaclean/internal/port/outbound/service"
 	"github.com/gieart87/gohexaclean/internal/port/outbound/telemetry"
 	redisClient "github.com/redis/go-redis/v9"
+	"gorm.io/gorm"
 )
 
 // Container holds all application dependencies
@@ -28,7 +28,7 @@ type Container struct {
 	Logger *logger.Logger
 
 	// Database
-	DB          *sql.DB
+	DB          *gorm.DB
 	RedisClient *redisClient.Client
 
 	// Repositories
@@ -66,8 +66,8 @@ func NewContainer(configPath string) (*Container, error) {
 	}
 	container.Logger = log
 
-	// Initialize database
-	database, err := db.NewPostgresConnection(&cfg.Database)
+	// Initialize database with GORM
+	database, err := db.NewGormConnection(&cfg.Database)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}

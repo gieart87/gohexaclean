@@ -12,7 +12,6 @@ type UserResponse struct {
 	ID        uuid.UUID `json:"id"`
 	Email     string    `json:"email"`
 	Name      string    `json:"name"`
-	IsActive  bool      `json:"is_active"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
@@ -23,7 +22,6 @@ func NewUserResponse(user *domain.User) *UserResponse {
 		ID:        user.ID,
 		Email:     user.Email,
 		Name:      user.Name,
-		IsActive:  user.IsActive,
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
 	}
