@@ -37,13 +37,17 @@ type CreateUserRequest struct {
 
 // ErrorResponse defines model for ErrorResponse.
 type ErrorResponse struct {
-	Error *string `json:"error,omitempty"`
+	// ErrorCode Error code identifier
+	ErrorCode *string `json:"error_code,omitempty"`
 
-	// Errors Validation errors
-	Errors    *map[string]interface{} `json:"errors"`
-	Message   *string                 `json:"message,omitempty"`
-	Success   *bool                   `json:"success,omitempty"`
-	Timestamp *time.Time              `json:"timestamp,omitempty"`
+	// Errors Validation errors (each field can have multiple error messages)
+	Errors  *map[string][]string `json:"errors"`
+	Message *string              `json:"message,omitempty"`
+	Meta    *struct {
+		RequestId *openapi_types.UUID `json:"request_id,omitempty"`
+		Timestamp *time.Time          `json:"timestamp,omitempty"`
+	} `json:"meta,omitempty"`
+	Success *bool `json:"success,omitempty"`
 }
 
 // LoginRequest defines model for LoginRequest.
@@ -62,9 +66,12 @@ type LoginResponse struct {
 		Token *string `json:"token,omitempty"`
 		User  *User   `json:"user,omitempty"`
 	} `json:"data,omitempty"`
-	Message   *string    `json:"message,omitempty"`
-	Success   *bool      `json:"success,omitempty"`
-	Timestamp *time.Time `json:"timestamp,omitempty"`
+	Message *string `json:"message,omitempty"`
+	Meta    *struct {
+		RequestId *openapi_types.UUID `json:"request_id,omitempty"`
+		Timestamp *time.Time          `json:"timestamp,omitempty"`
+	} `json:"meta,omitempty"`
+	Success *bool `json:"success,omitempty"`
 }
 
 // PaginatedUserResponse defines model for PaginatedUserResponse.
@@ -72,21 +79,27 @@ type PaginatedUserResponse struct {
 	Data    *[]User `json:"data,omitempty"`
 	Message *string `json:"message,omitempty"`
 	Meta    *struct {
-		Limit      *int   `json:"limit,omitempty"`
-		Page       *int   `json:"page,omitempty"`
-		Total      *int64 `json:"total,omitempty"`
-		TotalPages *int   `json:"total_pages,omitempty"`
+		Pagination *struct {
+			Page       *int   `json:"page,omitempty"`
+			PerPage    *int   `json:"per_page,omitempty"`
+			Total      *int64 `json:"total,omitempty"`
+			TotalPages *int   `json:"total_pages,omitempty"`
+		} `json:"pagination,omitempty"`
+		RequestId *openapi_types.UUID `json:"request_id,omitempty"`
+		Timestamp *time.Time          `json:"timestamp,omitempty"`
 	} `json:"meta,omitempty"`
-	Success   *bool      `json:"success,omitempty"`
-	Timestamp *time.Time `json:"timestamp,omitempty"`
+	Success *bool `json:"success,omitempty"`
 }
 
 // SuccessResponse defines model for SuccessResponse.
 type SuccessResponse struct {
-	Data      *map[string]interface{} `json:"data"`
-	Message   *string                 `json:"message,omitempty"`
-	Success   *bool                   `json:"success,omitempty"`
-	Timestamp *time.Time              `json:"timestamp,omitempty"`
+	Data    *map[string]interface{} `json:"data"`
+	Message *string                 `json:"message,omitempty"`
+	Meta    *struct {
+		RequestId *openapi_types.UUID `json:"request_id,omitempty"`
+		Timestamp *time.Time          `json:"timestamp,omitempty"`
+	} `json:"meta,omitempty"`
+	Success *bool `json:"success,omitempty"`
 }
 
 // UpdateUserRequest defines model for UpdateUserRequest.
@@ -118,10 +131,13 @@ type User struct {
 
 // UserResponse defines model for UserResponse.
 type UserResponse struct {
-	Data      *User      `json:"data,omitempty"`
-	Message   *string    `json:"message,omitempty"`
-	Success   *bool      `json:"success,omitempty"`
-	Timestamp *time.Time `json:"timestamp,omitempty"`
+	Data    *User   `json:"data,omitempty"`
+	Message *string `json:"message,omitempty"`
+	Meta    *struct {
+		RequestId *openapi_types.UUID `json:"request_id,omitempty"`
+		Timestamp *time.Time          `json:"timestamp,omitempty"`
+	} `json:"meta,omitempty"`
+	Success *bool `json:"success,omitempty"`
 }
 
 // ListUsersParams defines parameters for ListUsers.
@@ -308,36 +324,38 @@ func RegisterHandlersWithOptions(router fiber.Router, si ServerInterface, option
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

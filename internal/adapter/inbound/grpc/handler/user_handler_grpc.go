@@ -31,6 +31,11 @@ func (h *UserHandlerGRPC) CreateUser(ctx context.Context, req *pb.CreateUserRequ
 		Password: req.Password,
 	}
 
+	// Validate request
+	if err := createReq.Validate(); err != nil {
+		return nil, err
+	}
+
 	registerResp, err := h.userService.CreateUser(ctx, createReq)
 	if err != nil {
 		return nil, err
@@ -80,6 +85,11 @@ func (h *UserHandlerGRPC) UpdateUser(ctx context.Context, req *pb.UpdateUserRequ
 
 	updateReq := &request.UpdateUserRequest{
 		Name: req.Name,
+	}
+
+	// Validate request
+	if err := updateReq.Validate(); err != nil {
+		return nil, err
 	}
 
 	user, err := h.userService.UpdateUser(ctx, id, updateReq)
@@ -159,6 +169,11 @@ func (h *UserHandlerGRPC) Login(ctx context.Context, req *pb.LoginRequest) (*pb.
 	loginReq := &request.LoginRequest{
 		Email:    req.Email,
 		Password: req.Password,
+	}
+
+	// Validate request
+	if err := loginReq.Validate(); err != nil {
+		return nil, err
 	}
 
 	loginResp, err := h.userService.Login(ctx, loginReq)

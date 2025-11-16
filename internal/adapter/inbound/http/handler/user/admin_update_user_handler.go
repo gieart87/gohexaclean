@@ -21,10 +21,18 @@ func (h *Handler) UpdateUser(c *fiber.Ctx, id openapi_types.UUID) error {
 	}
 
 	// Convert generated type to domain DTO
-	user, err := h.userService.UpdateUser(c.Context(), uuid.UUID(id), &request.UpdateUserRequest{
+	updateReq := &request.UpdateUserRequest{
 		Name: req.Name,
-	})
+	}
 
+	// Validate request
+	if err := updateReq.Validate(); err != nil {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(
+			response.NewValidationErrorResponse("Validation failed", response.ParseValidationErrors(err)),
+		)
+	}
+
+	user, err := h.userService.UpdateUser(c.Context(), uuid.UUID(id), updateReq)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(
 			response.NewErrorResponse("Failed to update user", err),

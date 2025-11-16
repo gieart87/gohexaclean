@@ -19,11 +19,19 @@ func (h *Handler) Login(c *fiber.Ctx) error {
 	}
 
 	// Convert generated type to domain DTO
-	loginResp, err := h.userService.Login(c.Context(), &request.LoginRequest{
+	loginReq := &request.LoginRequest{
 		Email:    string(req.Email),
 		Password: req.Password,
-	})
+	}
 
+	// Validate request
+	if err := loginReq.Validate(); err != nil {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(
+			response.NewValidationErrorResponse("Validation failed", response.ParseValidationErrors(err)),
+		)
+	}
+
+	loginResp, err := h.userService.Login(c.Context(), loginReq)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(
 			response.NewErrorResponse("Invalid credentials", err),

@@ -19,12 +19,20 @@ func (h *Handler) CreateUser(c *fiber.Ctx) error {
 	}
 
 	// Convert generated type to domain DTO
-	registerResp, err := h.userService.CreateUser(c.Context(), &request.CreateUserRequest{
+	createReq := &request.CreateUserRequest{
 		Email:    string(req.Email),
 		Name:     req.Name,
 		Password: req.Password,
-	})
+	}
 
+	// Validate request
+	if err := createReq.Validate(); err != nil {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(
+			response.NewValidationErrorResponse("Validation failed", response.ParseValidationErrors(err)),
+		)
+	}
+
+	registerResp, err := h.userService.CreateUser(c.Context(), createReq)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(
 			response.NewErrorResponse("Failed to create user", err),

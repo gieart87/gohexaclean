@@ -92,6 +92,64 @@ func TestHandler_CreateUser_InvalidBody(t *testing.T) {
 	assert.Equal(t, fiber.StatusBadRequest, resp.StatusCode)
 }
 
+func TestHandler_CreateUser_ValidationError_ShortPassword(t *testing.T) {
+	handler, _, ctrl, app := setupHandlerTest(t)
+	defer ctrl.Finish()
+
+	app.Post("/users", handler.CreateUser)
+
+	req := userapi.CreateUserRequest{
+		Email:    "test@example.com",
+		Name:     "Test User",
+		Password: "123",
+	}
+
+	reqBody, _ := json.Marshal(req)
+	httpReq, _ := http.NewRequest(http.MethodPost, "/users", bytes.NewReader(reqBody))
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	resp, err := app.Test(httpReq)
+	require.NoError(t, err)
+
+	assert.Equal(t, fiber.StatusUnprocessableEntity, resp.StatusCode)
+
+	body, _ := io.ReadAll(resp.Body)
+	var result map[string]interface{}
+	json.Unmarshal(body, &result)
+
+	assert.Equal(t, "Validation failed", result["message"])
+	assert.Equal(t, "VALIDATION_ERROR", result["error_code"])
+}
+
+func TestHandler_CreateUser_ValidationError_ShortName(t *testing.T) {
+	handler, _, ctrl, app := setupHandlerTest(t)
+	defer ctrl.Finish()
+
+	app.Post("/users", handler.CreateUser)
+
+	req := userapi.CreateUserRequest{
+		Email:    "test@example.com",
+		Name:     "AB",
+		Password: "password123",
+	}
+
+	reqBody, _ := json.Marshal(req)
+	httpReq, _ := http.NewRequest(http.MethodPost, "/users", bytes.NewReader(reqBody))
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	resp, err := app.Test(httpReq)
+	require.NoError(t, err)
+
+	assert.Equal(t, fiber.StatusUnprocessableEntity, resp.StatusCode)
+
+	body, _ := io.ReadAll(resp.Body)
+	var result map[string]interface{}
+	json.Unmarshal(body, &result)
+
+	assert.Equal(t, "Validation failed", result["message"])
+	assert.Equal(t, "VALIDATION_ERROR", result["error_code"])
+}
+
 func TestHandler_CreateUser_ServiceError(t *testing.T) {
 	handler, mockService, ctrl, app := setupHandlerTest(t)
 	defer ctrl.Finish()
@@ -176,6 +234,34 @@ func TestHandler_Login_InvalidBody(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, fiber.StatusBadRequest, resp.StatusCode)
+}
+
+func TestHandler_Login_ValidationError_EmptyPassword(t *testing.T) {
+	handler, _, ctrl, app := setupHandlerTest(t)
+	defer ctrl.Finish()
+
+	app.Post("/auth/login", handler.Login)
+
+	req := userapi.LoginRequest{
+		Email:    "test@example.com",
+		Password: "",
+	}
+
+	reqBody, _ := json.Marshal(req)
+	httpReq, _ := http.NewRequest(http.MethodPost, "/auth/login", bytes.NewReader(reqBody))
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	resp, err := app.Test(httpReq)
+	require.NoError(t, err)
+
+	assert.Equal(t, fiber.StatusUnprocessableEntity, resp.StatusCode)
+
+	body, _ := io.ReadAll(resp.Body)
+	var result map[string]interface{}
+	json.Unmarshal(body, &result)
+
+	assert.Equal(t, "Validation failed", result["message"])
+	assert.Equal(t, "VALIDATION_ERROR", result["error_code"])
 }
 
 func TestHandler_Login_InvalidCredentials(t *testing.T) {
@@ -318,6 +404,36 @@ func TestHandler_UpdateUser_InvalidBody(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, fiber.StatusBadRequest, resp.StatusCode)
+}
+
+func TestHandler_UpdateUser_ValidationError_ShortName(t *testing.T) {
+	handler, _, ctrl, app := setupHandlerTest(t)
+	defer ctrl.Finish()
+
+	userID := uuid.New()
+	app.Put("/users/:id", func(c *fiber.Ctx) error {
+		return handler.UpdateUser(c, openapi_types.UUID(userID))
+	})
+
+	req := userapi.UpdateUserRequest{
+		Name: "AB",
+	}
+
+	reqBody, _ := json.Marshal(req)
+	httpReq, _ := http.NewRequest(http.MethodPut, "/users/"+userID.String(), bytes.NewReader(reqBody))
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	resp, err := app.Test(httpReq)
+	require.NoError(t, err)
+
+	assert.Equal(t, fiber.StatusUnprocessableEntity, resp.StatusCode)
+
+	body, _ := io.ReadAll(resp.Body)
+	var result map[string]interface{}
+	json.Unmarshal(body, &result)
+
+	assert.Equal(t, "Validation failed", result["message"])
+	assert.Equal(t, "VALIDATION_ERROR", result["error_code"])
 }
 
 func TestHandler_UpdateUser_ServiceError(t *testing.T) {

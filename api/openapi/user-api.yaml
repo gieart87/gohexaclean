@@ -336,10 +336,17 @@ components:
           example: User retrieved successfully
         data:
           $ref: '#/components/schemas/User'
-        timestamp:
-          type: string
-          format: date-time
-          example: '2024-01-15T10:30:00Z'
+        meta:
+          type: object
+          properties:
+            request_id:
+              type: string
+              format: uuid
+              example: '550e8400-e29b-41d4-a716-446655440000'
+            timestamp:
+              type: string
+              format: date-time
+              example: '2025-11-16T12:00:00Z'
 
     LoginResponse:
       type: object
@@ -359,9 +366,17 @@ components:
               description: JWT access token
             user:
               $ref: '#/components/schemas/User'
-        timestamp:
-          type: string
-          format: date-time
+        meta:
+          type: object
+          properties:
+            request_id:
+              type: string
+              format: uuid
+              example: '550e8400-e29b-41d4-a716-446655440000'
+            timestamp:
+              type: string
+              format: date-time
+              example: '2025-11-16T12:00:00Z'
 
     PaginatedUserResponse:
       type: object
@@ -379,22 +394,30 @@ components:
         meta:
           type: object
           properties:
-            page:
-              type: integer
-              example: 1
-            limit:
-              type: integer
-              example: 10
-            total:
-              type: integer
-              format: int64
-              example: 100
-            total_pages:
-              type: integer
-              example: 10
-        timestamp:
-          type: string
-          format: date-time
+            request_id:
+              type: string
+              format: uuid
+              example: '550e8400-e29b-41d4-a716-446655440000'
+            timestamp:
+              type: string
+              format: date-time
+              example: '2025-11-16T12:00:00Z'
+            pagination:
+              type: object
+              properties:
+                page:
+                  type: integer
+                  example: 1
+                per_page:
+                  type: integer
+                  example: 10
+                total:
+                  type: integer
+                  format: int64
+                  example: 100
+                total_pages:
+                  type: integer
+                  example: 10
 
     SuccessResponse:
       type: object
@@ -408,9 +431,17 @@ components:
         data:
           type: object
           nullable: true
-        timestamp:
-          type: string
-          format: date-time
+        meta:
+          type: object
+          properties:
+            request_id:
+              type: string
+              format: uuid
+              example: '550e8400-e29b-41d4-a716-446655440000'
+            timestamp:
+              type: string
+              format: date-time
+              example: '2025-11-16T12:00:00Z'
 
     ErrorResponse:
       type: object
@@ -421,16 +452,32 @@ components:
         message:
           type: string
           example: An error occurred
-        error:
+        error_code:
           type: string
-          example: Detailed error message
+          example: VALIDATION_ERROR
+          description: Error code identifier
         errors:
           type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
           nullable: true
-          description: Validation errors
-        timestamp:
-          type: string
-          format: date-time
+          description: Validation errors (each field can have multiple error messages)
+          example:
+            email: ["Email is required", "Email must be valid"]
+            password: ["Password must be at least 6 characters"]
+        meta:
+          type: object
+          properties:
+            request_id:
+              type: string
+              format: uuid
+              example: '550e8400-e29b-41d4-a716-446655440000'
+            timestamp:
+              type: string
+              format: date-time
+              example: '2025-11-16T12:00:00Z'
 
     # Data Models
     User:
