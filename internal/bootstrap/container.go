@@ -17,11 +17,13 @@ import (
 	"github.com/gieart87/gohexaclean/internal/infra/config"
 	"github.com/gieart87/gohexaclean/internal/infra/db"
 	"github.com/gieart87/gohexaclean/internal/infra/logger"
+	asynqInfra "github.com/gieart87/gohexaclean/internal/infrastructure/asynq"
 	"github.com/gieart87/gohexaclean/internal/port/inbound"
 	"github.com/gieart87/gohexaclean/internal/port/outbound/broker"
 	"github.com/gieart87/gohexaclean/internal/port/outbound/repository"
 	"github.com/gieart87/gohexaclean/internal/port/outbound/service"
 	"github.com/gieart87/gohexaclean/internal/port/outbound/telemetry"
+	"github.com/hibiken/asynq"
 	redisClient "github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
@@ -45,6 +47,9 @@ type Container struct {
 	MessageBroker   broker.MessageBroker
 	EventPublisher  *event.UserEventPublisher
 	EventConsumer   *consumer.UserEventConsumer
+
+	// Background Jobs
+	TaskClient *asynq.Client
 
 	// Telemetry
 	MetricsService telemetry.MetricsService
@@ -163,6 +168,15 @@ func NewContainer(configPath string) (*Container, error) {
 		container.CacheService = &NoOpCacheService{}
 	}
 
+	// Initialize Asynq task client for background jobs
+	if container.RedisClient != nil {
+		redisAddr := fmt.Sprintf("%s:%s", cfg.Redis.Host, cfg.Redis.Port)
+		container.TaskClient = asynqInfra.NewClient(redisAddr)
+		log.Info("Asynq task client initialized")
+	} else {
+		log.Warn("Redis not available, background jobs will be disabled")
+	}
+
 	// Initialize message broker
 	if cfg.Broker.Enabled {
 		messageBroker, err := brokerFactory.NewMessageBroker(&cfg.Broker)
@@ -197,6 +211,7 @@ func NewContainer(configPath string) (*Container, error) {
 		container.CacheService,
 		&cfg.JWT,
 		container.EventPublisher,
+		container.TaskClient,
 	)
 
 	// Initialize gRPC handlers
@@ -222,6 +237,13 @@ func (c *Container) Close() error {
 	if c.RedisClient != nil {
 		if err := cache.Close(c.RedisClient); err != nil {
 			c.Logger.Error("Failed to close Redis connection")
+		}
+	}
+
+	// Close Asynq task client
+	if c.TaskClient != nil {
+		if err := c.TaskClient.Close(); err != nil {
+			c.Logger.Error("Failed to close Asynq task client")
 		}
 	}
 

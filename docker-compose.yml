@@ -88,6 +88,21 @@ services:
       - gohexaclean-network
     restart: unless-stopped
 
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: worker
+    container_name: gohexaclean-worker
+    environment:
+      - REDIS_ADDR=redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - gohexaclean-network
+    restart: unless-stopped
+
 networks:
   gohexaclean-network:
     driver: bridge

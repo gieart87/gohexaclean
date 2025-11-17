@@ -3,18 +3,21 @@ package app
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/gieart87/gohexaclean/internal/adapter/outbound/event"
 	"github.com/gieart87/gohexaclean/internal/domain"
 	"github.com/gieart87/gohexaclean/internal/dto/request"
 	"github.com/gieart87/gohexaclean/internal/dto/response"
 	"github.com/gieart87/gohexaclean/internal/infra/config"
+	"github.com/gieart87/gohexaclean/internal/infrastructure/asynq/tasks"
 	"github.com/gieart87/gohexaclean/internal/port/inbound"
 	"github.com/gieart87/gohexaclean/internal/port/outbound/repository"
 	"github.com/gieart87/gohexaclean/internal/port/outbound/service"
 	"github.com/gieart87/gohexaclean/pkg/auth"
 	"github.com/gieart87/gohexaclean/pkg/crypto"
 	"github.com/google/uuid"
+	"github.com/hibiken/asynq"
 )
 
 // UserService implements the UserServicePort interface
@@ -23,6 +26,7 @@ type UserService struct {
 	cacheService   service.CacheService
 	jwtConfig      *config.JWTConfig
 	eventPublisher *event.UserEventPublisher
+	taskClient     *asynq.Client
 }
 
 // NewUserService creates a new user service
@@ -31,12 +35,14 @@ func NewUserService(
 	cacheService service.CacheService,
 	jwtConfig *config.JWTConfig,
 	eventPublisher *event.UserEventPublisher,
+	taskClient *asynq.Client,
 ) inbound.UserServicePort {
 	return &UserService{
 		userRepo:       userRepo,
 		cacheService:   cacheService,
 		jwtConfig:      jwtConfig,
 		eventPublisher: eventPublisher,
+		taskClient:     taskClient,
 	}
 }
 
@@ -82,6 +88,21 @@ func (s *UserService) CreateUser(ctx context.Context, req *request.CreateUserReq
 		if err := s.eventPublisher.PublishUserCreated(ctx, event); err != nil {
 			// Log error but don't fail the operation
 			fmt.Printf("failed to publish user created event: %v\n", err)
+		}
+	}
+
+	// Enqueue welcome email task asynchronously
+	if s.taskClient != nil {
+		task, err := tasks.NewEmailWelcomeTask(user.ID.String(), user.Email, user.Name)
+		if err != nil {
+			log.Printf("failed to create welcome email task: %v", err)
+		} else {
+			info, err := s.taskClient.Enqueue(task)
+			if err != nil {
+				log.Printf("failed to enqueue welcome email task: %v", err)
+			} else {
+				log.Printf("enqueued welcome email task: id=%s queue=%s", info.ID, info.Queue)
+			}
 		}
 	}
 
