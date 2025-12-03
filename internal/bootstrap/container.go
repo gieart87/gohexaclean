@@ -17,7 +17,7 @@ import (
 	"github.com/gieart87/gohexaclean/internal/infra/config"
 	"github.com/gieart87/gohexaclean/internal/infra/db"
 	"github.com/gieart87/gohexaclean/internal/infra/logger"
-	asynqInfra "github.com/gieart87/gohexaclean/internal/infrastructure/asynq"
+	asynqInfra "github.com/gieart87/gohexaclean/internal/infra/asynq"
 	"github.com/gieart87/gohexaclean/internal/port/inbound"
 	"github.com/gieart87/gohexaclean/internal/port/outbound/broker"
 	"github.com/gieart87/gohexaclean/internal/port/outbound/repository"

@@ -6,8 +6,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/gieart87/gohexaclean/internal/infrastructure/asynq"
-	"github.com/gieart87/gohexaclean/internal/infrastructure/asynq/tasks"
+	"github.com/gieart87/gohexaclean/internal/infra/asynq"
+	"github.com/gieart87/gohexaclean/internal/infra/asynq/tasks"
 	asynqlib "github.com/hibiken/asynq"
 )
 

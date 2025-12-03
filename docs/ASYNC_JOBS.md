@@ -29,7 +29,7 @@ Dikirim otomatis setelah user berhasil registrasi.
 }
 ```
 
-**Location:** `internal/infrastructure/asynq/tasks/email_task.go`
+**Location:** `internal/infra/asynq/tasks/email_task.go`
 
 ## Menjalankan Worker
 
@@ -80,7 +80,7 @@ Asynq menggunakan weighted priority untuk memproses task:
 
 ### 1. Buat Task Definition
 
-Buat file baru di `internal/infrastructure/asynq/tasks/`:
+Buat file baru di `internal/infra/asynq/tasks/`:
 
 ```go
 package tasks
@@ -140,7 +140,7 @@ mux.HandleFunc(tasks.TypeNewTask, tasks.HandleNewTask) // Tambahkan ini
 
 ```go
 import (
-    "github.com/gieart87/gohexaclean/internal/infrastructure/asynq/tasks"
+    "github.com/gieart87/gohexaclean/internal/infra/asynq/tasks"
 )
 
 // Di dalam service method

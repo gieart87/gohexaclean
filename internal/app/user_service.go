@@ -10,7 +10,7 @@ import (
 	"github.com/gieart87/gohexaclean/internal/dto/request"
 	"github.com/gieart87/gohexaclean/internal/dto/response"
 	"github.com/gieart87/gohexaclean/internal/infra/config"
-	"github.com/gieart87/gohexaclean/internal/infrastructure/asynq/tasks"
+	"github.com/gieart87/gohexaclean/internal/infra/asynq/tasks"
 	"github.com/gieart87/gohexaclean/internal/port/inbound"
 	"github.com/gieart87/gohexaclean/internal/port/outbound/repository"
 	"github.com/gieart87/gohexaclean/internal/port/outbound/service"
