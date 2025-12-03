@@ -53,12 +53,14 @@ func SetupRoutes(
 
 	// Auto-register user routes from OpenAPI spec
 	// This will create routes for:
+	// Auth:
 	// - POST /auth/login (public - login)
-	// - POST /users (public - register)
-	// - GET /users (protected - list users)
-	// - GET /users/{id} (protected - get user)
-	// - PUT /users/{id} (protected - update user)
-	// - DELETE /users/{id} (protected - delete user)
+	// - POST /auth/register (public - register)
+	// Admin:
+	// - GET /admin/users (protected - list users)
+	// - GET /admin/users/{id} (protected - get user)
+	// - PUT /admin/users/{id} (protected - update user)
+	// - DELETE /admin/users/{id} (protected - delete user)
 	userapi.RegisterHandlers(api, userHandler)
 
 	// Note: For protected routes, you'll need to add auth middleware

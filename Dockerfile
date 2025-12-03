@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.21-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 # Install dependencies
 RUN apk add --no-cache git make protobuf-dev
@@ -21,6 +21,9 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o http-server ./cmd
 
 # Build gRPC server
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o grpc-server ./cmd/grpc
+
+# Build Worker
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o worker ./cmd/worker
 
 # Final stage for HTTP
 FROM alpine:latest AS http
@@ -51,3 +54,15 @@ COPY --from=builder /app/config ./config
 EXPOSE 50051
 
 CMD ["./grpc-server"]
+
+# Final stage for Worker
+FROM alpine:latest AS worker
+
+RUN apk --no-cache add ca-certificates tzdata
+
+WORKDIR /root/
+
+# Copy binary
+COPY --from=builder /app/worker .
+
+CMD ["./worker"]

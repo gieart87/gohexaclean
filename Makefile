@@ -185,7 +185,11 @@ migrate-reset:
 ## seed: Run database seeders
 seed:
 	@echo "$(COLOR_GREEN)Running seeders...$(COLOR_RESET)"
-	go run internal/infra/db/seeders/main.go
+	@for file in internal/infra/db/seeders/*.sql; do \
+		echo "Running seeder: $$file"; \
+		PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d gohexaclean -f $$file; \
+	done
+	@echo "$(COLOR_GREEN)Seeders complete!$(COLOR_RESET)"
 
 ##@ Docker
 

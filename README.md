@@ -2,7 +2,7 @@
 
 > Production-ready Golang boilerplate with Hexagonal + Clean Architecture
 
-[![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat&logo=go)](https://golang.org/)
+[![Go Version](https://img.shields.io/badge/Go-1.24+-00ADD8?style=flat&logo=go)](https://golang.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 A modern, scalable, and maintainable Go microservice boilerplate combining **Hexagonal Architecture** (Ports & Adapters) with **Clean Architecture** principles. Built for production use with comprehensive support for both HTTP (Fiber/Gin) and gRPC protocols.
@@ -194,11 +194,12 @@ gohexaclean/
 
 ### Prerequisites
 
-- Go 1.21 or higher
+- Go 1.24 or higher
 - PostgreSQL 15+
 - Redis 7+ (optional, graceful fallback)
 - RabbitMQ 3.13+ (optional, can be disabled)
-- Docker & Docker Compose (optional)
+- Docker & Docker Compose (recommended)
+- PostgreSQL Client (`psql`) - for running seeders
 - Protocol Buffer Compiler (for gRPC)
 
 ### Installation
@@ -235,39 +236,59 @@ Edit `.env` or `config/app.yaml` with your database credentials.
 
 ### Running with Docker
 
+**IMPORTANT: First Time Setup**
+
+If you're setting up the project for the first time, follow these steps in order:
+
 ```bash
-# Start all services (PostgreSQL, Redis, HTTP, gRPC)
+# 1. Start all services (PostgreSQL, Redis, HTTP, gRPC, Worker)
 make docker-up
 
-# Start with RabbitMQ (optional)
-docker-compose -f docker-compose.rabbitmq.yml up -d
+# 2. Run database migrations
+make migrate-up
+
+# 3. Seed database with initial data
+make seed
+```
+
+After the initial setup, you can use these commands:
+
+```bash
+# Start all services
+make docker-up
 
 # View logs
 make docker-logs
 
 # Stop services
 make docker-down
+
+# Start with RabbitMQ (optional)
+docker-compose -f docker-compose.rabbitmq.yml up -d
 ```
+
+**Seeded Users:**
+- Email: `admin@example.com` / Password: `password`
+- Email: `user@example.com` / Password: `password`
 
 ### Running Locally
 
-1. **Start PostgreSQL and Redis**
+**IMPORTANT: First Time Setup**
+
+If you're setting up the project for the first time, follow these steps in order:
 
 ```bash
+# 1. Start PostgreSQL and Redis
 docker-compose up -d postgres redis
-```
 
-2. **Run migrations**
-
-```bash
+# 2. Run database migrations
 make migrate-up
-```
 
-3. **Seed database (optional)**
-
-```bash
+# 3. Seed database with initial data
 make seed
 ```
+
+After the initial setup:
 
 4. **Run HTTP server**
 
@@ -282,6 +303,17 @@ make run-http
 make run-grpc
 # Server runs on localhost:50051
 ```
+
+6. **Run Worker (in another terminal, optional)**
+
+```bash
+go run cmd/worker/main.go
+# Worker connects to Redis for background jobs
+```
+
+**Seeded Users:**
+- Email: `admin@example.com` / Password: `password`
+- Email: `user@example.com` / Password: `password`
 
 ## API Documentation
 

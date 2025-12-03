@@ -7,10 +7,10 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-// CreateUser handles user registration
+// Register handles user registration
 // Public endpoint - no authentication required
-// POST /users
-func (h *Handler) CreateUser(c *fiber.Ctx) error {
+// POST /auth/register
+func (h *Handler) Register(c *fiber.Ctx) error {
 	var req userapi.CreateUserRequest
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(

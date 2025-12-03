@@ -28,8 +28,8 @@ servers:
 tags:
   - name: Auth
     description: Authentication endpoints
-  - name: Users
-    description: User management endpoints
+  - name: Admin
+    description: Admin user management endpoints
 
 paths:
   /auth/login:
@@ -65,12 +65,51 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /users:
+  /auth/register:
+    post:
+      tags:
+        - Auth
+      summary: Register new user
+      description: Create a new user account and receive JWT token
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: User already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/users:
     get:
       tags:
-        - Users
+        - Admin
       summary: List users
-      description: Get paginated list of users (requires authentication)
+      description: Get paginated list of users (requires admin authentication)
       operationId: listUsers
       security:
         - BearerAuth: []
@@ -106,44 +145,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-    post:
-      tags:
-        - Users
-      summary: Create user
-      description: Register a new user
-      operationId: createUser
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateUserRequest'
-      responses:
-        '201':
-          description: User created successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserResponse'
-        '400':
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '409':
-          description: User already exists
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /users/{id}:
+  /admin/users/{id}:
     get:
       tags:
-        - Users
+        - Admin
       summary: Get user by ID
-      description: Retrieve a specific user (requires authentication)
+      description: Retrieve a specific user (requires admin authentication)
       operationId: getUserById
       security:
         - BearerAuth: []
@@ -177,9 +184,9 @@ paths:
 
     put:
       tags:
-        - Users
+        - Admin
       summary: Update user
-      description: Update user information (requires authentication)
+      description: Update user information (requires admin authentication)
       operationId: updateUser
       security:
         - BearerAuth: []
@@ -225,9 +232,9 @@ paths:
 
     delete:
       tags:
-        - Users
+        - Admin
       summary: Delete user
-      description: Delete a user (requires authentication)
+      description: Delete a user (requires admin authentication)
       operationId: deleteUser
       security:
         - BearerAuth: []

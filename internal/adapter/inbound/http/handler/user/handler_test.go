@@ -31,11 +31,11 @@ func setupHandlerTest(t *testing.T) (*Handler, *mock.MockUserServicePort, *gomoc
 	return handler, mockService, ctrl, app
 }
 
-func TestHandler_CreateUser(t *testing.T) {
+func TestHandler_Register(t *testing.T) {
 	handler, mockService, ctrl, app := setupHandlerTest(t)
 	defer ctrl.Finish()
 
-	app.Post("/users", handler.CreateUser)
+	app.Post("/auth/register", handler.Register)
 
 	req := userapi.CreateUserRequest{
 		Email:    "test@example.com",
@@ -61,7 +61,7 @@ func TestHandler_CreateUser(t *testing.T) {
 		Return(loginResp, nil)
 
 	reqBody, _ := json.Marshal(req)
-	httpReq, _ := http.NewRequest(http.MethodPost, "/users", bytes.NewReader(reqBody))
+	httpReq, _ := http.NewRequest(http.MethodPost, "/auth/register", bytes.NewReader(reqBody))
 	httpReq.Header.Set("Content-Type", "application/json")
 
 	resp, err := app.Test(httpReq)
@@ -81,9 +81,9 @@ func TestHandler_CreateUser_InvalidBody(t *testing.T) {
 	handler, _, ctrl, app := setupHandlerTest(t)
 	defer ctrl.Finish()
 
-	app.Post("/users", handler.CreateUser)
+	app.Post("/auth/register", handler.Register)
 
-	httpReq, _ := http.NewRequest(http.MethodPost, "/users", bytes.NewReader([]byte("invalid json")))
+	httpReq, _ := http.NewRequest(http.MethodPost, "/auth/register", bytes.NewReader([]byte("invalid json")))
 	httpReq.Header.Set("Content-Type", "application/json")
 
 	resp, err := app.Test(httpReq)
@@ -96,7 +96,7 @@ func TestHandler_CreateUser_ValidationError_ShortPassword(t *testing.T) {
 	handler, _, ctrl, app := setupHandlerTest(t)
 	defer ctrl.Finish()
 
-	app.Post("/users", handler.CreateUser)
+	app.Post("/auth/register", handler.Register)
 
 	req := userapi.CreateUserRequest{
 		Email:    "test@example.com",
@@ -105,7 +105,7 @@ func TestHandler_CreateUser_ValidationError_ShortPassword(t *testing.T) {
 	}
 
 	reqBody, _ := json.Marshal(req)
-	httpReq, _ := http.NewRequest(http.MethodPost, "/users", bytes.NewReader(reqBody))
+	httpReq, _ := http.NewRequest(http.MethodPost, "/auth/register", bytes.NewReader(reqBody))
 	httpReq.Header.Set("Content-Type", "application/json")
 
 	resp, err := app.Test(httpReq)
@@ -125,7 +125,7 @@ func TestHandler_CreateUser_ValidationError_ShortName(t *testing.T) {
 	handler, _, ctrl, app := setupHandlerTest(t)
 	defer ctrl.Finish()
 
-	app.Post("/users", handler.CreateUser)
+	app.Post("/auth/register", handler.Register)
 
 	req := userapi.CreateUserRequest{
 		Email:    "test@example.com",
@@ -134,7 +134,7 @@ func TestHandler_CreateUser_ValidationError_ShortName(t *testing.T) {
 	}
 
 	reqBody, _ := json.Marshal(req)
-	httpReq, _ := http.NewRequest(http.MethodPost, "/users", bytes.NewReader(reqBody))
+	httpReq, _ := http.NewRequest(http.MethodPost, "/auth/register", bytes.NewReader(reqBody))
 	httpReq.Header.Set("Content-Type", "application/json")
 
 	resp, err := app.Test(httpReq)
@@ -154,7 +154,7 @@ func TestHandler_CreateUser_ServiceError(t *testing.T) {
 	handler, mockService, ctrl, app := setupHandlerTest(t)
 	defer ctrl.Finish()
 
-	app.Post("/users", handler.CreateUser)
+	app.Post("/auth/register", handler.Register)
 
 	req := userapi.CreateUserRequest{
 		Email:    "test@example.com",
@@ -167,7 +167,7 @@ func TestHandler_CreateUser_ServiceError(t *testing.T) {
 		Return(nil, domain.ErrUserAlreadyExists)
 
 	reqBody, _ := json.Marshal(req)
-	httpReq, _ := http.NewRequest(http.MethodPost, "/users", bytes.NewReader(reqBody))
+	httpReq, _ := http.NewRequest(http.MethodPost, "/auth/register", bytes.NewReader(reqBody))
 	httpReq.Header.Set("Content-Type", "application/json")
 
 	resp, err := app.Test(httpReq)
@@ -294,7 +294,7 @@ func TestHandler_GetUserById(t *testing.T) {
 	defer ctrl.Finish()
 
 	userID := uuid.New()
-	app.Get("/users/:id", func(c *fiber.Ctx) error {
+	app.Get("/admin/users/:id", func(c *fiber.Ctx) error {
 		return handler.GetUserById(c, openapi_types.UUID(userID))
 	})
 
@@ -310,7 +310,7 @@ func TestHandler_GetUserById(t *testing.T) {
 		GetUserByID(gomock.Any(), userID).
 		Return(userResp, nil)
 
-	httpReq, _ := http.NewRequest(http.MethodGet, "/users/"+userID.String(), nil)
+	httpReq, _ := http.NewRequest(http.MethodGet, "/admin/users/"+userID.String(), nil)
 
 	resp, err := app.Test(httpReq)
 	require.NoError(t, err)
@@ -330,7 +330,7 @@ func TestHandler_GetUserById_NotFound(t *testing.T) {
 	defer ctrl.Finish()
 
 	userID := uuid.New()
-	app.Get("/users/:id", func(c *fiber.Ctx) error {
+	app.Get("/admin/users/:id", func(c *fiber.Ctx) error {
 		return handler.GetUserById(c, openapi_types.UUID(userID))
 	})
 
@@ -338,7 +338,7 @@ func TestHandler_GetUserById_NotFound(t *testing.T) {
 		GetUserByID(gomock.Any(), userID).
 		Return(nil, domain.ErrUserNotFound)
 
-	httpReq, _ := http.NewRequest(http.MethodGet, "/users/"+userID.String(), nil)
+	httpReq, _ := http.NewRequest(http.MethodGet, "/admin/users/"+userID.String(), nil)
 
 	resp, err := app.Test(httpReq)
 	require.NoError(t, err)
@@ -351,7 +351,7 @@ func TestHandler_UpdateUser(t *testing.T) {
 	defer ctrl.Finish()
 
 	userID := uuid.New()
-	app.Put("/users/:id", func(c *fiber.Ctx) error {
+	app.Put("/admin/users/:id", func(c *fiber.Ctx) error {
 		return handler.UpdateUser(c, openapi_types.UUID(userID))
 	})
 
@@ -372,7 +372,7 @@ func TestHandler_UpdateUser(t *testing.T) {
 		Return(userResp, nil)
 
 	reqBody, _ := json.Marshal(req)
-	httpReq, _ := http.NewRequest(http.MethodPut, "/users/"+userID.String(), bytes.NewReader(reqBody))
+	httpReq, _ := http.NewRequest(http.MethodPut, "/admin/users/"+userID.String(), bytes.NewReader(reqBody))
 	httpReq.Header.Set("Content-Type", "application/json")
 
 	resp, err := app.Test(httpReq)
@@ -393,11 +393,11 @@ func TestHandler_UpdateUser_InvalidBody(t *testing.T) {
 	defer ctrl.Finish()
 
 	userID := uuid.New()
-	app.Put("/users/:id", func(c *fiber.Ctx) error {
+	app.Put("/admin/users/:id", func(c *fiber.Ctx) error {
 		return handler.UpdateUser(c, openapi_types.UUID(userID))
 	})
 
-	httpReq, _ := http.NewRequest(http.MethodPut, "/users/"+userID.String(), bytes.NewReader([]byte("invalid json")))
+	httpReq, _ := http.NewRequest(http.MethodPut, "/admin/users/"+userID.String(), bytes.NewReader([]byte("invalid json")))
 	httpReq.Header.Set("Content-Type", "application/json")
 
 	resp, err := app.Test(httpReq)
@@ -411,7 +411,7 @@ func TestHandler_UpdateUser_ValidationError_ShortName(t *testing.T) {
 	defer ctrl.Finish()
 
 	userID := uuid.New()
-	app.Put("/users/:id", func(c *fiber.Ctx) error {
+	app.Put("/admin/users/:id", func(c *fiber.Ctx) error {
 		return handler.UpdateUser(c, openapi_types.UUID(userID))
 	})
 
@@ -420,7 +420,7 @@ func TestHandler_UpdateUser_ValidationError_ShortName(t *testing.T) {
 	}
 
 	reqBody, _ := json.Marshal(req)
-	httpReq, _ := http.NewRequest(http.MethodPut, "/users/"+userID.String(), bytes.NewReader(reqBody))
+	httpReq, _ := http.NewRequest(http.MethodPut, "/admin/users/"+userID.String(), bytes.NewReader(reqBody))
 	httpReq.Header.Set("Content-Type", "application/json")
 
 	resp, err := app.Test(httpReq)
@@ -441,7 +441,7 @@ func TestHandler_UpdateUser_ServiceError(t *testing.T) {
 	defer ctrl.Finish()
 
 	userID := uuid.New()
-	app.Put("/users/:id", func(c *fiber.Ctx) error {
+	app.Put("/admin/users/:id", func(c *fiber.Ctx) error {
 		return handler.UpdateUser(c, openapi_types.UUID(userID))
 	})
 
@@ -454,7 +454,7 @@ func TestHandler_UpdateUser_ServiceError(t *testing.T) {
 		Return(nil, errors.New("update failed"))
 
 	reqBody, _ := json.Marshal(req)
-	httpReq, _ := http.NewRequest(http.MethodPut, "/users/"+userID.String(), bytes.NewReader(reqBody))
+	httpReq, _ := http.NewRequest(http.MethodPut, "/admin/users/"+userID.String(), bytes.NewReader(reqBody))
 	httpReq.Header.Set("Content-Type", "application/json")
 
 	resp, err := app.Test(httpReq)
@@ -468,7 +468,7 @@ func TestHandler_DeleteUser(t *testing.T) {
 	defer ctrl.Finish()
 
 	userID := uuid.New()
-	app.Delete("/users/:id", func(c *fiber.Ctx) error {
+	app.Delete("/admin/users/:id", func(c *fiber.Ctx) error {
 		return handler.DeleteUser(c, openapi_types.UUID(userID))
 	})
 
@@ -476,7 +476,7 @@ func TestHandler_DeleteUser(t *testing.T) {
 		DeleteUser(gomock.Any(), userID).
 		Return(nil)
 
-	httpReq, _ := http.NewRequest(http.MethodDelete, "/users/"+userID.String(), nil)
+	httpReq, _ := http.NewRequest(http.MethodDelete, "/admin/users/"+userID.String(), nil)
 
 	resp, err := app.Test(httpReq)
 	require.NoError(t, err)
@@ -495,7 +495,7 @@ func TestHandler_DeleteUser_NotFound(t *testing.T) {
 	defer ctrl.Finish()
 
 	userID := uuid.New()
-	app.Delete("/users/:id", func(c *fiber.Ctx) error {
+	app.Delete("/admin/users/:id", func(c *fiber.Ctx) error {
 		return handler.DeleteUser(c, openapi_types.UUID(userID))
 	})
 
@@ -503,7 +503,7 @@ func TestHandler_DeleteUser_NotFound(t *testing.T) {
 		DeleteUser(gomock.Any(), userID).
 		Return(domain.ErrUserNotFound)
 
-	httpReq, _ := http.NewRequest(http.MethodDelete, "/users/"+userID.String(), nil)
+	httpReq, _ := http.NewRequest(http.MethodDelete, "/admin/users/"+userID.String(), nil)
 
 	resp, err := app.Test(httpReq)
 	require.NoError(t, err)
@@ -518,7 +518,7 @@ func TestHandler_ListUsers(t *testing.T) {
 	page := 1
 	limit := 10
 
-	app.Get("/users", func(c *fiber.Ctx) error {
+	app.Get("/admin/users", func(c *fiber.Ctx) error {
 		params := userapi.ListUsersParams{
 			Page:  &page,
 			Limit: &limit,
@@ -566,7 +566,7 @@ func TestHandler_ListUsers_DefaultPagination(t *testing.T) {
 	handler, mockService, ctrl, app := setupHandlerTest(t)
 	defer ctrl.Finish()
 
-	app.Get("/users", func(c *fiber.Ctx) error {
+	app.Get("/admin/users", func(c *fiber.Ctx) error {
 		params := userapi.ListUsersParams{}
 		return handler.ListUsers(c, params)
 	})
@@ -577,7 +577,7 @@ func TestHandler_ListUsers_DefaultPagination(t *testing.T) {
 		ListUsers(gomock.Any(), 1, 10).
 		Return(users, int64(0), nil)
 
-	httpReq, _ := http.NewRequest(http.MethodGet, "/users", nil)
+	httpReq, _ := http.NewRequest(http.MethodGet, "/admin/users", nil)
 
 	resp, err := app.Test(httpReq)
 	require.NoError(t, err)
@@ -592,7 +592,7 @@ func TestHandler_ListUsers_InvalidPagination(t *testing.T) {
 	invalidPage := -1
 	invalidLimit := 200
 
-	app.Get("/users", func(c *fiber.Ctx) error {
+	app.Get("/admin/users", func(c *fiber.Ctx) error {
 		params := userapi.ListUsersParams{
 			Page:  &invalidPage,
 			Limit: &invalidLimit,
@@ -607,7 +607,7 @@ func TestHandler_ListUsers_InvalidPagination(t *testing.T) {
 		ListUsers(gomock.Any(), 1, 10).
 		Return(users, int64(0), nil)
 
-	httpReq, _ := http.NewRequest(http.MethodGet, "/users", nil)
+	httpReq, _ := http.NewRequest(http.MethodGet, "/admin/users", nil)
 
 	resp, err := app.Test(httpReq)
 	require.NoError(t, err)
@@ -622,7 +622,7 @@ func TestHandler_ListUsers_ServiceError(t *testing.T) {
 	page := 1
 	limit := 10
 
-	app.Get("/users", func(c *fiber.Ctx) error {
+	app.Get("/admin/users", func(c *fiber.Ctx) error {
 		params := userapi.ListUsersParams{
 			Page:  &page,
 			Limit: &limit,
@@ -634,7 +634,7 @@ func TestHandler_ListUsers_ServiceError(t *testing.T) {
 		ListUsers(gomock.Any(), page, limit).
 		Return(nil, int64(0), errors.New("database error"))
 
-	httpReq, _ := http.NewRequest(http.MethodGet, "/users", nil)
+	httpReq, _ := http.NewRequest(http.MethodGet, "/admin/users", nil)
 
 	resp, err := app.Test(httpReq)
 	require.NoError(t, err)

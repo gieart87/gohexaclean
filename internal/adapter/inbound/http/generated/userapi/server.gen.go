@@ -4,16 +4,10 @@
 package userapi
 
 import (
-	"bytes"
-	"compress/gzip"
-	"encoding/base64"
 	"fmt"
 	"net/url"
-	"path"
-	"strings"
 	"time"
 
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gofiber/fiber/v2"
 	"github.com/oapi-codegen/runtime"
 	openapi_types "github.com/oapi-codegen/runtime/types"
@@ -149,35 +143,35 @@ type ListUsersParams struct {
 	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
-// LoginJSONRequestBody defines body for Login for application/json ContentType.
-type LoginJSONRequestBody = LoginRequest
-
-// CreateUserJSONRequestBody defines body for CreateUser for application/json ContentType.
-type CreateUserJSONRequestBody = CreateUserRequest
-
 // UpdateUserJSONRequestBody defines body for UpdateUser for application/json ContentType.
 type UpdateUserJSONRequestBody = UpdateUserRequest
 
+// LoginJSONRequestBody defines body for Login for application/json ContentType.
+type LoginJSONRequestBody = LoginRequest
+
+// RegisterJSONRequestBody defines body for Register for application/json ContentType.
+type RegisterJSONRequestBody = CreateUserRequest
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// List users
+	// (GET /admin/users)
+	ListUsers(c *fiber.Ctx, params ListUsersParams) error
+	// Delete user
+	// (DELETE /admin/users/{id})
+	DeleteUser(c *fiber.Ctx, id openapi_types.UUID) error
+	// Get user by ID
+	// (GET /admin/users/{id})
+	GetUserById(c *fiber.Ctx, id openapi_types.UUID) error
+	// Update user
+	// (PUT /admin/users/{id})
+	UpdateUser(c *fiber.Ctx, id openapi_types.UUID) error
 	// User login
 	// (POST /auth/login)
 	Login(c *fiber.Ctx) error
-	// List users
-	// (GET /users)
-	ListUsers(c *fiber.Ctx, params ListUsersParams) error
-	// Create user
-	// (POST /users)
-	CreateUser(c *fiber.Ctx) error
-	// Delete user
-	// (DELETE /users/{id})
-	DeleteUser(c *fiber.Ctx, id openapi_types.UUID) error
-	// Get user by ID
-	// (GET /users/{id})
-	GetUserById(c *fiber.Ctx, id openapi_types.UUID) error
-	// Update user
-	// (PUT /users/{id})
-	UpdateUser(c *fiber.Ctx, id openapi_types.UUID) error
+	// Register new user
+	// (POST /auth/register)
+	Register(c *fiber.Ctx) error
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -186,12 +180,6 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc fiber.Handler
-
-// Login operation middleware
-func (siw *ServerInterfaceWrapper) Login(c *fiber.Ctx) error {
-
-	return siw.Handler.Login(c)
-}
 
 // ListUsers operation middleware
 func (siw *ServerInterfaceWrapper) ListUsers(c *fiber.Ctx) error {
@@ -224,12 +212,6 @@ func (siw *ServerInterfaceWrapper) ListUsers(c *fiber.Ctx) error {
 	}
 
 	return siw.Handler.ListUsers(c, params)
-}
-
-// CreateUser operation middleware
-func (siw *ServerInterfaceWrapper) CreateUser(c *fiber.Ctx) error {
-
-	return siw.Handler.CreateUser(c)
 }
 
 // DeleteUser operation middleware
@@ -286,6 +268,18 @@ func (siw *ServerInterfaceWrapper) UpdateUser(c *fiber.Ctx) error {
 	return siw.Handler.UpdateUser(c, id)
 }
 
+// Login operation middleware
+func (siw *ServerInterfaceWrapper) Login(c *fiber.Ctx) error {
+
+	return siw.Handler.Login(c)
+}
+
+// Register operation middleware
+func (siw *ServerInterfaceWrapper) Register(c *fiber.Ctx) error {
+
+	return siw.Handler.Register(c)
+}
+
 // FiberServerOptions provides options for the Fiber server.
 type FiberServerOptions struct {
 	BaseURL     string
@@ -307,125 +301,16 @@ func RegisterHandlersWithOptions(router fiber.Router, si ServerInterface, option
 		router.Use(m)
 	}
 
+	router.Get(options.BaseURL+"/admin/users", wrapper.ListUsers)
+
+	router.Delete(options.BaseURL+"/admin/users/:id", wrapper.DeleteUser)
+
+	router.Get(options.BaseURL+"/admin/users/:id", wrapper.GetUserById)
+
+	router.Put(options.BaseURL+"/admin/users/:id", wrapper.UpdateUser)
+
 	router.Post(options.BaseURL+"/auth/login", wrapper.Login)
 
-	router.Get(options.BaseURL+"/users", wrapper.ListUsers)
+	router.Post(options.BaseURL+"/auth/register", wrapper.Register)
 
-	router.Post(options.BaseURL+"/users", wrapper.CreateUser)
-
-	router.Delete(options.BaseURL+"/users/:id", wrapper.DeleteUser)
-
-	router.Get(options.BaseURL+"/users/:id", wrapper.GetUserById)
-
-	router.Put(options.BaseURL+"/users/:id", wrapper.UpdateUser)
-
-}
-
-// Base64 encoded, gzipped, json marshaled Swagger object
-var swaggerSpec = []string{
-
-	"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",
-}
-
-// GetSwagger returns the content of the embedded swagger specification file
-// or error if failed to decode
-func decodeSpec() ([]byte, error) {
-	zipped, err := base64.StdEncoding.DecodeString(strings.Join(swaggerSpec, ""))
-	if err != nil {
-		return nil, fmt.Errorf("error base64 decoding spec: %w", err)
-	}
-	zr, err := gzip.NewReader(bytes.NewReader(zipped))
-	if err != nil {
-		return nil, fmt.Errorf("error decompressing spec: %w", err)
-	}
-	var buf bytes.Buffer
-	_, err = buf.ReadFrom(zr)
-	if err != nil {
-		return nil, fmt.Errorf("error decompressing spec: %w", err)
-	}
-
-	return buf.Bytes(), nil
-}
-
-var rawSpec = decodeSpecCached()
-
-// a naive cached of a decoded swagger spec
-func decodeSpecCached() func() ([]byte, error) {
-	data, err := decodeSpec()
-	return func() ([]byte, error) {
-		return data, err
-	}
-}
-
-// Constructs a synthetic filesystem for resolving external references when loading openapi specifications.
-func PathToRawSpec(pathToFile string) map[string]func() ([]byte, error) {
-	res := make(map[string]func() ([]byte, error))
-	if len(pathToFile) > 0 {
-		res[pathToFile] = rawSpec
-	}
-
-	return res
-}
-
-// GetSwagger returns the Swagger specification corresponding to the generated code
-// in this file. The external references of Swagger specification are resolved.
-// The logic of resolving external references is tightly connected to "import-mapping" feature.
-// Externally referenced files must be embedded in the corresponding golang packages.
-// Urls can be supported but this task was out of the scope.
-func GetSwagger() (swagger *openapi3.T, err error) {
-	resolvePath := PathToRawSpec("")
-
-	loader := openapi3.NewLoader()
-	loader.IsExternalRefsAllowed = true
-	loader.ReadFromURIFunc = func(loader *openapi3.Loader, url *url.URL) ([]byte, error) {
-		pathToFile := url.String()
-		pathToFile = path.Clean(pathToFile)
-		getSpec, ok := resolvePath[pathToFile]
-		if !ok {
-			err1 := fmt.Errorf("path not found: %s", pathToFile)
-			return nil, err1
-		}
-		return getSpec()
-	}
-	var specData []byte
-	specData, err = rawSpec()
-	if err != nil {
-		return
-	}
-	swagger, err = loader.LoadFromData(specData)
-	if err != nil {
-		return
-	}
-	return
 }
