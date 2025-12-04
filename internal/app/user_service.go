@@ -66,11 +66,6 @@ func (s *UserService) CreateUser(ctx context.Context, req *request.CreateUserReq
 	// Create domain entity
 	user := domain.NewUser(req.Email, req.Name, hashedPassword)
 
-	// Validate domain entity
-	if err := user.Validate(); err != nil {
-		return nil, err
-	}
-
 	// Save to repository
 	if err := s.userRepo.Create(ctx, user); err != nil {
 		return nil, fmt.Errorf("failed to create user: %w", err)

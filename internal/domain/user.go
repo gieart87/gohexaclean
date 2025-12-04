@@ -33,20 +33,6 @@ func NewUser(email, name, password string) *User {
 	}
 }
 
-// Validate performs domain-level validation
-func (u *User) Validate() error {
-	if u.Email == "" {
-		return ErrEmailRequired
-	}
-	if u.Name == "" {
-		return ErrNameRequired
-	}
-	if u.Password == "" {
-		return ErrPasswordRequired
-	}
-	return nil
-}
-
 // UpdateProfile updates user profile information
 func (u *User) UpdateProfile(name string) {
 	u.Name = name
