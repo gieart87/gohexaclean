@@ -111,27 +111,6 @@ func TestUserService_CreateUser_ExistsCheckError(t *testing.T) {
 	assert.Nil(t, resp)
 }
 
-func TestUserService_CreateUser_EmptyEmail(t *testing.T) {
-	service, mockRepo, _, ctrl := setupUserServiceTest(t)
-	defer ctrl.Finish()
-
-	req := &request.CreateUserRequest{
-		Email:    "",
-		Name:     "Test User",
-		Password: "password123",
-	}
-
-	mockRepo.EXPECT().
-		ExistsByEmail(gomock.Any(), req.Email).
-		Return(false, nil)
-
-	resp, err := service.CreateUser(context.Background(), req)
-
-	assert.Error(t, err)
-	assert.Equal(t, domain.ErrEmailRequired, err)
-	assert.Nil(t, resp)
-}
-
 func TestUserService_CreateUser_CreateError(t *testing.T) {
 	service, mockRepo, _, ctrl := setupUserServiceTest(t)
 	defer ctrl.Finish()

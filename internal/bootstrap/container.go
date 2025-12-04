@@ -170,7 +170,7 @@ func NewContainer(configPath string) (*Container, error) {
 
 	// Initialize Asynq task client for background jobs
 	if container.RedisClient != nil {
-		redisAddr := fmt.Sprintf("%s:%s", cfg.Redis.Host, cfg.Redis.Port)
+		redisAddr := fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port)
 		container.TaskClient = asynqInfra.NewClient(redisAddr)
 		log.Info("Asynq task client initialized")
 	} else {

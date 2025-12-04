@@ -547,7 +547,7 @@ func TestHandler_ListUsers(t *testing.T) {
 		ListUsers(gomock.Any(), page, limit).
 		Return(users, int64(2), nil)
 
-	httpReq, _ := http.NewRequest(http.MethodGet, "/users?page=1&limit=10", nil)
+	httpReq, _ := http.NewRequest(http.MethodGet, "/admin/users?page=1&limit=10", nil)
 
 	resp, err := app.Test(httpReq)
 	require.NoError(t, err)
