@@ -1,11 +1,26 @@
 .PHONY: help build run test clean docker-up docker-down proto migrate
 
+# Load .env file if it exists
+ifneq (,$(wildcard .env))
+    include .env
+    export
+endif
+
 # Variables
 APP_NAME=gohexaclean
 HTTP_SERVER=cmd/http/main.go
 GRPC_SERVER=cmd/grpc/main.go
 PROTO_DIR=api/proto
 GO_FILES=$(shell find . -name '*.go' -not -path "./vendor/*")
+
+# Database variables with defaults
+DB_HOST ?= localhost
+DB_PORT ?= 5432
+DB_USER ?= postgres
+DB_PASSWORD ?= postgres
+DB_NAME ?= gohexaclean
+DB_SSL_MODE ?= disable
+DB_DSN = "host=$(DB_HOST) port=$(DB_PORT) user=$(DB_USER) password=$(DB_PASSWORD) dbname=$(DB_NAME) sslmode=$(DB_SSL_MODE)"
 
 # Colors for output
 COLOR_RESET=\033[0m
@@ -157,17 +172,17 @@ openapi-validate:
 ## migrate-up: Run database migrations using goose
 migrate-up:
 	@echo "$(COLOR_GREEN)Running migrations...$(COLOR_RESET)"
-	cd internal/infra/db/migrations && goose postgres "host=localhost port=5432 user=postgres password=postgres dbname=gohexaclean sslmode=disable" up
+	@cd internal/infra/db/migrations && goose postgres $(DB_DSN) up
 
 ## migrate-down: Rollback database migrations
 migrate-down:
 	@echo "$(COLOR_GREEN)Rolling back migrations...$(COLOR_RESET)"
-	cd internal/infra/db/migrations && goose postgres "host=localhost port=5432 user=postgres password=postgres dbname=gohexaclean sslmode=disable" down
+	@cd internal/infra/db/migrations && goose postgres $(DB_DSN) down
 
 ## migrate-status: Check migration status
 migrate-status:
 	@echo "$(COLOR_GREEN)Checking migration status...$(COLOR_RESET)"
-	cd internal/infra/db/migrations && goose postgres "host=localhost port=5432 user=postgres password=postgres dbname=gohexaclean sslmode=disable" status
+	@cd internal/infra/db/migrations && goose postgres $(DB_DSN) status
 
 ## migrate-create: Create new migration file
 migrate-create:
@@ -179,15 +194,15 @@ migrate-create:
 ## migrate-reset: Reset database (down all, then up all)
 migrate-reset:
 	@echo "$(COLOR_GREEN)Resetting database...$(COLOR_RESET)"
-	cd internal/infra/db/migrations && goose postgres "host=localhost port=5432 user=postgres password=postgres dbname=gohexaclean sslmode=disable" reset
-	cd internal/infra/db/migrations && goose postgres "host=localhost port=5432 user=postgres password=postgres dbname=gohexaclean sslmode=disable" up
+	@cd internal/infra/db/migrations && goose postgres $(DB_DSN) reset
+	@cd internal/infra/db/migrations && goose postgres $(DB_DSN) up
 
 ## seed: Run database seeders
 seed:
 	@echo "$(COLOR_GREEN)Running seeders...$(COLOR_RESET)"
 	@for file in internal/infra/db/seeders/*.sql; do \
 		echo "Running seeder: $$file"; \
-		PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d gohexaclean -f $$file; \
+		PGPASSWORD=$(DB_PASSWORD) psql -h $(DB_HOST) -p $(DB_PORT) -U $(DB_USER) -d $(DB_NAME) -f $$file; \
 	done
 	@echo "$(COLOR_GREEN)Seeders complete!$(COLOR_RESET)"
 
