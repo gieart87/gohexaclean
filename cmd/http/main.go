@@ -14,6 +14,8 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 )
 
+const appVersion = "1.0.0"
+
 func main() {
 	// Load configuration
 	configPath := getConfigPath()
@@ -52,6 +54,8 @@ func main() {
 		container.Logger,
 		container.MetricsService,
 		container.TracingService,
+		container.Config.App.Name,
+		appVersion,
 	)
 
 	// Start server

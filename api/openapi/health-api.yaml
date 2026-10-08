@@ -13,9 +13,9 @@ info:
     url: https://opensource.org/licenses/MIT
 
 servers:
-  - url: http://localhost:8080/api/v1
+  - url: http://localhost:8080
     description: Local development server
-  - url: https://api.example.com/api/v1
+  - url: https://api.example.com
     description: Production server
 
 tags:
@@ -43,9 +43,18 @@ components:
     HealthResponse:
       type: object
       properties:
+        service:
+          type: string
+          example: gohexaclean
         status:
           type: string
           example: ok
-        message:
+        version:
           type: string
-          example: Service is running
+          example: 1.0.0
+        timestamp:
+          type: string
+          format: date-time
+        uptime_seconds:
+          type: integer
+          example: 42

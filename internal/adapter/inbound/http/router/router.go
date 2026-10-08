@@ -22,6 +22,8 @@ func SetupRoutes(
 	log *logger.Logger,
 	metricsService telemetry.MetricsService,
 	tracingService telemetry.TracingService,
+	appName string,
+	appVersion string,
 ) {
 	// API v1 group
 	api := app.Group("/api/v1")
@@ -42,14 +44,16 @@ func SetupRoutes(
 	})
 
 	// Create health handler that implements healthapi.ServerInterface
-	healthHandler := health.NewHandler()
+	healthHandler := health.NewHandler(appName, appVersion)
 
 	// Create user handler that implements userapi.ServerInterface
 	userHandler := user.NewHandler(userService)
 
 	// Auto-register health routes from OpenAPI spec
 	// This will create: GET /health (public - health check)
-	healthapi.RegisterHandlers(api, healthHandler)
+	// Health check is registered on the root app, not under /api/v1 —
+	// container healthchecks and any upstream gateway need a bare GET /health.
+	healthapi.RegisterHandlers(app, healthHandler)
 
 	// Auto-register user routes from OpenAPI spec
 	// This will create routes for:
